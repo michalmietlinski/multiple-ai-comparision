@@ -23,6 +23,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-logs/	
+# Log files and directories
+*.log
+logs/
 threadLogs/
-config/
+/logs
+/threadLogs
+log/
+/log
+
+# Config files
+/config/*
+!/config/apis.example.json

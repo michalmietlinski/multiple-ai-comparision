@@ -4,9 +4,9 @@ as a simple script to compare responses from different AI language models side b
 
 Now expanding it into more complex tool with more features and better UI/UX.
 
-![Step 1](/images/1.png)
-![Step 2](/images/2.png)
-![Step 3](/images/3.png)
+![Step 1](./public/images/1.png)
+![Step 2](./public/images/2.png)
+![Step 3](./public/images/3.png)
 
 ## Features
 
