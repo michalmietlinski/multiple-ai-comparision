@@ -1,0 +1,108 @@
+.save-prompt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.save-prompt-dialog {
+  background: var(--card-bg);
+  padding: 24px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 6px var(--shadow-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.save-prompt-dialog h3 {
+  margin: 0 0 20px 0;
+  color: var(--text-color);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-color-alpha);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.save-prompt-error {
+  color: #dc3545;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.dialog-buttons button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.dialog-buttons button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.dialog-buttons button:not(.primary) {
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.dialog-buttons button:not(.primary):hover:not(:disabled) {
+  background-color: var(--hover-color);
+}
+
+.dialog-buttons button.primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.dialog-buttons button.primary:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+} 

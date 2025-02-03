@@ -6,7 +6,7 @@ import ThreadedChat from './ThreadedChat';
 import ThreadHistoryPanel from './ThreadHistoryPanel';
 import './ThreadedComparison.css';
 
-function ThreadedComparison() {
+function ThreadedComparison({ currentPrompt, setCurrentPrompt }) {
   const [availableModels, setAvailableModels] = useState([]);
   const [selectedModels, setSelectedModels] = useState([]);
   const [prompt, setPrompt] = useState('');
@@ -48,6 +48,13 @@ function ThreadedComparison() {
   useEffect(() => {
     fetchThreads();
   }, []);
+
+  useEffect(() => {
+    if (currentPrompt) {
+      setPrompt(currentPrompt);
+      setCurrentPrompt('');
+    }
+  }, [currentPrompt, setCurrentPrompt]);
 
   const formatModelName = (modelId) => {
     return modelId
@@ -247,8 +254,8 @@ function ThreadedComparison() {
         modelsLoading={modelsLoading}
         modelsError={modelsError}
         clearForm={clearForm}
-        modelsLocked={modelsLocked}
         isSubmitting={isSubmitting}
+        modelsLocked={modelsLocked}
       />
       
       <ThreadedChat

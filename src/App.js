@@ -5,6 +5,7 @@ import ModelComparison from './components/ModelComparison';
 import ThreadedComparison from './components/ThreadedComparison';
 import ApiManager from './components/ApiManager';
 import ThemeToggle from './components/ThemeToggle';
+import PromptManager from './components/PromptManager';
 import './App.css';
 
 // Create a new component for the navigation
@@ -114,6 +115,14 @@ function App() {
     localStorage.getItem('theme') === 'dark'
   );
 
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(
+    window.innerWidth <= 768
+  );
+
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(true);
+
+  const [currentPrompt, setCurrentPrompt] = useState('');
+
   useEffect(() => {
     checkHealth();
     const interval = setInterval(checkHealth, 30000); 
@@ -127,6 +136,23 @@ function App() {
     );
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768;
+      setIsLeftSidebarCollapsed(isMobile);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggleLeftSidebar = () => {
+    setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed);
+  };
+
+  const toggleRightSidebar = () => {
+    setIsRightSidebarCollapsed(!isRightSidebarCollapsed);
+  };
 
   const checkHealth = async () => {
     try {
@@ -158,11 +184,19 @@ function App() {
     setIsDarkMode(!isDarkMode);
   };
 
+  const handleLoadPrompt = (promptText) => {
+    setCurrentPrompt(promptText);
+  };
+
   return (
     <BrowserRouter>
       <div className="app-container">
-        <nav className="sidebar">
-		<ThemeToggle 
+        <div className={`sidebar-title left ${isLeftSidebarCollapsed ? 'collapsed' : ''}`}>
+          Configuration & Help
+        </div>
+        
+        <nav className={`sidebar-left ${isLeftSidebarCollapsed ? 'collapsed' : ''}`}>
+          <ThemeToggle 
             isDark={isDarkMode} 
             onToggle={toggleTheme}
           />
@@ -207,10 +241,46 @@ function App() {
 
        
         </nav>
-        <main className="main-content">
+        
+        <button 
+          className={`sidebar-toggle-left ${isLeftSidebarCollapsed ? 'collapsed' : ''}`}
+          onClick={toggleLeftSidebar}
+        >
+          {isLeftSidebarCollapsed ? '→' : '←'}
+        </button>
+
+        <div className={`sidebar-title right ${isRightSidebarCollapsed ? 'collapsed' : ''}`}>
+          Saved Prompts
+        </div>
+
+        <aside className={`sidebar-right ${isRightSidebarCollapsed ? 'collapsed' : ''}`}>
+          <PromptManager onLoadPrompt={handleLoadPrompt} />
+        </aside>
+
+        <button 
+          className={`sidebar-toggle-right ${isRightSidebarCollapsed ? 'collapsed' : ''}`}
+          onClick={toggleRightSidebar}
+        >
+          {isRightSidebarCollapsed ? '←' : '→'}
+        </button>
+
+        <main className={`main-content 
+          ${isLeftSidebarCollapsed ? 'left-collapsed' : 'left-expanded'}
+          ${isRightSidebarCollapsed ? 'right-collapsed' : 'right-expanded'}`}
+        >
           <Routes>
-            <Route path="/" element={<ModelComparison />} />
-            <Route path="/threaded" element={<ThreadedComparison />} />
+            <Route path="/" element={
+              <ModelComparison 
+                currentPrompt={currentPrompt}
+                setCurrentPrompt={setCurrentPrompt}
+              />
+            } />
+            <Route path="/threaded" element={
+              <ThreadedComparison 
+                currentPrompt={currentPrompt}
+                setCurrentPrompt={setCurrentPrompt}
+              />
+            } />
           </Routes>
         </main>
       </div>

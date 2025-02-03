@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import SavePromptDialog from './SavePromptDialog';
+import './ComparisonForm.css';
 
 function ComparisonForm({ 
   prompt, 
@@ -13,6 +15,21 @@ function ComparisonForm({
   isSubmitting,
   modelsLocked
 }) {
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+  const handleSaveClick = () => {
+    setShowSaveDialog(true);
+  };
+
+  const handleSaveClose = () => {
+    setShowSaveDialog(false);
+  };
+
+  const handleSaved = () => {
+    setShowSaveDialog(false);
+    // Optionally show a success message or update UI
+  };
+
   return (
     <>
       <div className="model-selection">
@@ -46,6 +63,14 @@ function ComparisonForm({
         />
         <div className="form-buttons">
           <button 
+            type="button"
+            className="save-prompt"
+            onClick={handleSaveClick}
+            disabled={!prompt.trim()}
+          >
+            Save Prompt
+          </button>
+          <button 
             className="clear-form"
             type="button"
             onClick={clearForm}
@@ -61,6 +86,14 @@ function ComparisonForm({
           </button>
         </div>
       </form>
+
+      {showSaveDialog && (
+        <SavePromptDialog
+          prompt={prompt}
+          onClose={handleSaveClose}
+          onSaved={handleSaved}
+        />
+      )}
     </>
   );
 }

@@ -35,3 +35,7 @@ log/
 # Config files
 /config/*
 !/config/apis.example.json
+
+# Saved prompts
+/prompts
+/savedPrompts

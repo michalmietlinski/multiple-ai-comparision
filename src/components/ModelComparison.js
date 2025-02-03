@@ -6,7 +6,7 @@ import ResponseGrid from './ResponseGrid';
 import HistoryPanel from './HistoryPanel';
 import { API_CHANGE_EVENT } from './ApiManager';
 
-function ModelComparison() {
+function ModelComparison({ currentPrompt, setCurrentPrompt }) {
   const [prompt, setPrompt] = useState('');
   const [responses, setResponses] = useState({});
   const [loading, setLoading] = useState({});
@@ -22,6 +22,13 @@ function ModelComparison() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apis, setApis] = useState([]);
   const [selectedApiId, setSelectedApiId] = useState(null);
+
+  useEffect(() => {
+    if (currentPrompt) {
+      setPrompt(currentPrompt);
+      setCurrentPrompt(''); // Clear it after using
+    }
+  }, [currentPrompt, setCurrentPrompt]);
 
   useEffect(() => {
     const fetchModels = async () => {

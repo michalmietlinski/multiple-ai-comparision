@@ -48,6 +48,18 @@ const DEFAULT_PROVIDER_CONFIGS = {
   }
 };
 
+// Prompt management
+const PROMPTS_DIR = path.join(__dirname, 'prompts');
+
+// Ensure prompts directory exists during initialization
+await (async function initializePromptManager() {
+  try {
+    await fsPromises.mkdir(PROMPTS_DIR, { recursive: true });
+  } catch (error) {
+    console.error('Error creating prompts directory:', error);
+  }
+})();
+
 async function ensureThreadLogsDir() {
   try {
     await fsPromises.access(THREAD_LOGS_DIR);
@@ -797,6 +809,53 @@ app.get('/api/changelog', async (req, res) => {
   } catch (error) {
     console.error('Error reading changelog:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all saved prompts
+app.get('/api/prompts', async (req, res) => {
+  try {
+    const files = await fsPromises.readdir(PROMPTS_DIR);
+    const prompts = await Promise.all(
+      files
+        .filter(file => file.endsWith('.json'))
+        .map(async file => {
+          const content = await fsPromises.readFile(path.join(PROMPTS_DIR, file), 'utf-8');
+          return { ...JSON.parse(content), filename: file };
+        })
+    );
+    res.json(prompts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+  } catch (error) {
+    console.error('Error reading prompts:', error);
+    res.status(500).json({ error: 'Failed to fetch prompts' });
+  }
+});
+
+// Save a new prompt
+app.post('/api/prompts', async (req, res) => {
+  try {
+    const promptData = req.body;
+    const filename = `${Date.now()}-${promptData.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
+    await fsPromises.writeFile(
+      path.join(PROMPTS_DIR, filename),
+      JSON.stringify(promptData, null, 2),
+      'utf-8'
+    );
+    res.status(201).json({ ...promptData, filename });
+  } catch (error) {
+    console.error('Error saving prompt:', error);
+    res.status(500).json({ error: 'Failed to save prompt' });
+  }
+});
+
+// Delete a prompt
+app.delete('/api/prompts/:filename', async (req, res) => {
+  try {
+    await fsPromises.unlink(path.join(PROMPTS_DIR, req.params.filename));
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting prompt:', error);
+    res.status(500).json({ error: 'Failed to delete prompt' });
   }
 });
 

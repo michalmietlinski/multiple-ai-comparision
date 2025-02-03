@@ -1,0 +1,120 @@
+.prompt-manager {
+  background-color: var(--card-bg);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px var(--shadow-color);
+  border: 1px solid var(--border-color);
+}
+
+.prompt-manager h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.1em;
+  color: var(--text-color);
+}
+
+.prompt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prompt-item {
+  padding: 12px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.prompt-item:hover {
+  background-color: var(--hover-color);
+}
+
+.prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.prompt-label {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.prompt-description {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.prompt-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.prompt-controls button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.prompt-controls button.delete-prompt {
+  background-color: #dc3545;
+  font-size: 1.2em;
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.prompt-controls button:disabled {
+  background-color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.prompt-manager-loading,
+.prompt-manager-error,
+.no-prompts {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.prompt-manager-error {
+  color: #dc3545;
+}
+
+.prompt-manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.prompt-manager-header h3 {
+  margin: 0;
+}
+
+.prompt-manager-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.prompt-manager-actions button {
+  padding: 4px 12px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-color);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.prompt-manager-actions button:hover {
+  background: var(--hover-bg);
+} 
