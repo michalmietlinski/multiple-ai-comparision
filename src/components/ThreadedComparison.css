@@ -25,8 +25,10 @@
   align-items: center;
   margin-bottom: 16px;
   padding: 12px;
-  background-color: #f8f9fa;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
+  color: var(--text-color);
 }
 
 .layout-toggle {
@@ -39,9 +41,31 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
+  color: var(--text-color);
 }
 
 .chat-controls input[type="radio"],
 .chat-controls input[type="checkbox"] {
   cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.form-buttons button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-buttons button:disabled {
+  background-color: var(--text-secondary);
+  cursor: not-allowed;
 } 

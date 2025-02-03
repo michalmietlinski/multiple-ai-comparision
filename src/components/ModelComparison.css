@@ -103,17 +103,19 @@ pre {
 }
 
 .clear-form {
-  background-color: #dc3545;
+  background-color: var(--primary-color);
+  color: white;
 }
 
 .clear-form:disabled {
-  background-color: #e9ecef;
+  background-color: var(--text-secondary);
   cursor: not-allowed;
 }
 
 .history-toggle {
-  background-color: #6c757d;
+  background-color: var(--primary-color);
   margin-left: 10px;
+  color: white;
 }
 
 .history-panel {
@@ -209,4 +211,18 @@ pre {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+}
+
+.form-buttons button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-buttons button:disabled {
+  background-color: var(--text-secondary);
+  cursor: not-allowed;
 } 
