@@ -1,9 +1,41 @@
-.comparison-form {
-  background-color: var(--card-bg);
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px var(--shadow-color);
+.comparison-form-container {
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.comparison-form-container form {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.comparison-form-container textarea {
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  width: 100%;
+  padding: 12px;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 100px;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+}
+
+.comparison-form-container textarea:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-color-alpha);
+}
+
+.comparison-form-container textarea:disabled {
+  background-color: var(--input-bg);
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .model-selection {
@@ -12,7 +44,7 @@
   gap: 12px;
   margin-bottom: 16px;
   padding: 12px;
-  background-color: var(--card-bg);
+  background: var(--input-bg);
   border: 1px solid var(--border-color);
   border-radius: 4px;
 }
@@ -43,29 +75,6 @@
 }
 
 .model-selection input[type="checkbox"]:disabled {
-  cursor: not-allowed;
-}
-
-textarea {
-  background-color: var(--input-bg);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-  width: 100%;
-  padding: 12px;
-  border-radius: 4px;
-  resize: vertical;
-  min-height: 100px;
-}
-
-textarea:focus {
-  border-color: var(--primary-color);
-  outline: none;
-  box-shadow: 0 0 0 2px var(--primary-color-alpha);
-}
-
-textarea:disabled {
-  background-color: var(--input-bg);
-  opacity: 0.7;
   cursor: not-allowed;
 }
 

@@ -4,61 +4,125 @@
   gap: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
   background-color: var(--bg-color);
+  margin-top: 20px;
 }
 
 .threaded-chat.full-width {
   max-width: none;
 }
 
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.chat-header h3 {
+  margin: 0;
+  color: var(--text-color);
+}
+
+.export-thread {
+  padding: 6px 12px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s;
+}
+
+.export-thread:hover {
+  background: var(--primary-color-dark);
+}
+
 .chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.conversation-turn {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.conversation-turn {
-  margin-bottom: 20px;
-}
-
 .message {
   padding: 12px;
   border-radius: 8px;
-  margin-bottom: 8px;
-  max-width: 80%;
-  background-color: var(--card-bg);
   border: 1px solid var(--border-color);
-  color: var(--text-color);
+  max-width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+}
+
+.message pre,
+.message code {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .message.user {
-  background-color: var(--sidebar-bg);
-  align-self: flex-end;
+  background: var(--card-bg);
+  margin-left: 20%;
 }
 
 .message.assistant {
-  background-color: var(--card-bg);
-  flex: 1;
+  background: var(--input-bg);
+  margin-right: 20%;
 }
 
 .model-name {
   font-size: 0.8em;
   color: var(--text-secondary);
   margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.message-content {
+  color: var(--text-color);
+  line-height: 1.5;
+  font-size: 0.95em;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .responses {
   display: flex;
+  flex-direction: column;
   gap: 12px;
-  margin-top: 8px;
+}
+
+.responses.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.threaded-chat.full-width .message.user {
+  margin-left: 0;
+}
+
+.threaded-chat.full-width .message.assistant {
+  margin-right: 0;
 }
 
 .responses.stacked {
   flex-direction: column;
-}
-
-.responses.grid {
-  flex-direction: row;
 }
 
 .responses.grid .message.assistant {

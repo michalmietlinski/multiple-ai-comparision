@@ -22,6 +22,12 @@ Now expanding it into more complex tool with more features and better UI/UX.
   - Threaded conversations
   - History tracking and management
 
+- **Prompt Management**
+  - Save and organize prompts
+  - Import/Export prompt collections
+  - Quick load functionality
+  - Prompt descriptions and labels
+
 - **UI/UX**
   - Dark/Light theme support
   - Responsive design
@@ -42,7 +48,6 @@ Now expanding it into more complex tool with more features and better UI/UX.
   - Local models (Ollama integration)
   
 - Advanced features
-  - Prompt templates
   - Model parameter adjustment (temperature, etc.)
   
 - Collaboration features

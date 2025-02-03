@@ -1,5 +1,25 @@
 {
   "entries": [
+	{
+		"date": "2024-03-21",
+		"title": "Added Export Features",
+		"items": [
+		  "Added single response export in model comparison",
+		  "Added full conversation export in threaded mode",
+		  "Added historical conversation export",
+		  "Export data includes timestamps and metadata"
+		]
+	},
+	{
+		"date": "2024-03-21",
+		"title": "Enhanced Prompt Management",
+		"items": [
+		  "Added prompt saving with labels and descriptions",
+		  "Implemented Import/Export functionality for prompt collections",
+		  "Added quick load feature for saved prompts",
+		  "Improved prompt list refresh on changes"
+		]
+	  },
     {
       "date": "2024-03-20",
       "title": "Added Multi-Provider Support",
