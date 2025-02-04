@@ -24,9 +24,10 @@ Now expanding it into more complex tool with more features and better UI/UX.
 
 - **Prompt Management**
   - Save and organize prompts
-  - Import/Export prompt collections
-  - Quick load functionality
-  - Prompt descriptions and labels
+  - Collections for prompt organization
+  - Import/Export functionality
+  - Quick load feature
+  - Collection-based filtering
 
 - **UI/UX**
   - Dark/Light theme support
@@ -49,9 +50,11 @@ Now expanding it into more complex tool with more features and better UI/UX.
   
 - Advanced features
   - Model parameter adjustment (temperature, etc.)
+  - Prompt templates and variables
   
 - Collaboration features
   - Export results
+  - Share collections
 
 ## Setup
 
@@ -97,6 +100,7 @@ npm run server
 2. **Enter Prompt**: Type your prompt in the text area
 3. **View Responses**: See responses side by side
 4. **Thread Mode**: Continue conversations with context
+5. **Collections**: Organize prompts into collections for better management
 
 ## Contributing
 
@@ -104,17 +108,18 @@ This project is in active development. Contributions are welcome! Please check t
 
 ### Development Plans
 
-1. **Phase 1** (Current)
+1. **Phase 1** (Completed)
    - Basic model comparison
    - Thread support
    - Multi-provider groundwork
    - Dark/Light theme
+   - Prompt collections
 
-2. **Phase 2** (Coming Soon)
-   - New repository launch
+2. **Phase 2** (In Progress)
    - Extended provider support
    - Advanced features
    - API improvements
+   - Enhanced collection management
 
 ## License
 

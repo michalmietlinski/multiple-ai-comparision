@@ -1,5 +1,15 @@
 {
   "entries": [
+    {
+      "date": "2024-03-22",
+      "title": "Collections and Prompt Organization",
+      "items": [
+        "Added collections for organizing prompts",
+        "Improved prompt management interface",
+        "Added collection-based filtering",
+        "Added collection deletion with prompts"
+      ]
+    },
 	{
 		"date": "2024-03-21",
 		"title": "Added Export Features",
