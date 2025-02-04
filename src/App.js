@@ -191,7 +191,7 @@ function App() {
   return (
     <BrowserRouter>
       <div className="app-container">
-        <div className={`sidebar-title left ${isLeftSidebarCollapsed ? 'collapsed' : ''}`}>
+        <div className={`sidebar-title left ${isLeftSidebarCollapsed ? 'collapsed' : ''}`} onClick={toggleLeftSidebar}>
           Configuration & Help
         </div>
         
@@ -249,7 +249,7 @@ function App() {
           {isLeftSidebarCollapsed ? '→' : '←'}
         </button>
 
-        <div className={`sidebar-title right ${isRightSidebarCollapsed ? 'collapsed' : ''}`}>
+        <div className={`sidebar-title right ${isRightSidebarCollapsed ? 'collapsed' : ''}`} onClick={toggleRightSidebar}>
           Saved Prompts
         </div>
 

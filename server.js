@@ -50,13 +50,15 @@ const DEFAULT_PROVIDER_CONFIGS = {
 
 // Prompt management
 const PROMPTS_DIR = path.join(__dirname, 'prompts');
+const COLLECTIONS_DIR = path.join(__dirname, 'collections');
 
-// Ensure prompts directory exists during initialization
-await (async function initializePromptManager() {
+// Ensure prompts and collections directories exist during initialization
+await (async function initializeDirectories() {
   try {
     await fsPromises.mkdir(PROMPTS_DIR, { recursive: true });
+    await fsPromises.mkdir(COLLECTIONS_DIR, { recursive: true });
   } catch (error) {
-    console.error('Error creating prompts directory:', error);
+    console.error('Error creating directories:', error);
   }
 })();
 
@@ -824,7 +826,13 @@ app.get('/api/prompts', async (req, res) => {
           return { ...JSON.parse(content), filename: file };
         })
     );
-    res.json(prompts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    // Sort by order if exists, fallback to timestamp
+    res.json(prompts.sort((a, b) => {
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    }));
   } catch (error) {
     console.error('Error reading prompts:', error);
     res.status(500).json({ error: 'Failed to fetch prompts' });
@@ -856,6 +864,157 @@ app.delete('/api/prompts/:filename', async (req, res) => {
   } catch (error) {
     console.error('Error deleting prompt:', error);
     res.status(500).json({ error: 'Failed to delete prompt' });
+  }
+});
+
+// Get all collections
+app.get('/api/collections', async (req, res) => {
+  try {
+    const files = await fsPromises.readdir(COLLECTIONS_DIR);
+    const collections = await Promise.all(
+      files
+        .filter(file => file.endsWith('.json'))
+        .map(async file => {
+          const content = await fsPromises.readFile(path.join(COLLECTIONS_DIR, file), 'utf-8');
+          return { ...JSON.parse(content), id: path.basename(file, '.json') };
+        })
+    );
+    res.json(collections);
+  } catch (error) {
+    console.error('Error reading collections:', error);
+    res.status(500).json({ error: 'Failed to fetch collections' });
+  }
+});
+
+// Create a new collection
+app.post('/api/collections', async (req, res) => {
+  try {
+    const { name } = req.body;
+    const id = `${Date.now()}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    const collectionData = {
+      name,
+      prompts: [],
+      createdAt: new Date().toISOString()
+    };
+    
+    await fsPromises.writeFile(
+      path.join(COLLECTIONS_DIR, `${id}.json`),
+      JSON.stringify(collectionData, null, 2),
+      'utf-8'
+    );
+    
+    res.status(201).json({ ...collectionData, id });
+  } catch (error) {
+    console.error('Error creating collection:', error);
+    res.status(500).json({ error: 'Failed to create collection' });
+  }
+});
+
+// Add prompt to collection
+app.post('/api/collections/:collectionId/prompts', async (req, res) => {
+  try {
+    const { collectionId } = req.params;
+    const { promptId } = req.body;
+    
+    // Read prompt and collection
+    const promptPath = path.join(PROMPTS_DIR, promptId);
+    const collectionPath = path.join(COLLECTIONS_DIR, `${collectionId}.json`);
+    
+    const promptData = JSON.parse(await fsPromises.readFile(promptPath, 'utf-8'));
+    const collectionData = JSON.parse(await fsPromises.readFile(collectionPath, 'utf-8'));
+    
+    // Update prompt with collection ID
+    promptData.collectionId = collectionId;
+    await fsPromises.writeFile(promptPath, JSON.stringify(promptData, null, 2), 'utf-8');
+    
+    // Add prompt to collection if not already there
+    if (!collectionData.prompts.includes(promptId)) {
+      collectionData.prompts.push(promptId);
+      await fsPromises.writeFile(collectionPath, JSON.stringify(collectionData, null, 2), 'utf-8');
+    }
+    
+    res.json({ message: 'Prompt added to collection' });
+  } catch (error) {
+    console.error('Error adding prompt to collection:', error);
+    res.status(500).json({ error: 'Failed to add prompt to collection' });
+  }
+});
+
+// Remove prompt from collection
+app.delete('/api/collections/:collectionId/prompts/:promptId', async (req, res) => {
+  try {
+    const { collectionId, promptId } = req.params;
+    
+    // Read prompt and collection
+    const promptPath = path.join(PROMPTS_DIR, promptId);
+    const collectionPath = path.join(COLLECTIONS_DIR, `${collectionId}.json`);
+    
+    const promptData = JSON.parse(await fsPromises.readFile(promptPath, 'utf-8'));
+    const collectionData = JSON.parse(await fsPromises.readFile(collectionPath, 'utf-8'));
+    
+    // Remove collection ID from prompt
+    delete promptData.collectionId;
+    await fsPromises.writeFile(promptPath, JSON.stringify(promptData, null, 2), 'utf-8');
+    
+    // Remove prompt from collection
+    collectionData.prompts = collectionData.prompts.filter(id => id !== promptId);
+    await fsPromises.writeFile(collectionPath, JSON.stringify(collectionData, null, 2), 'utf-8');
+    
+    res.json({ message: 'Prompt removed from collection' });
+  } catch (error) {
+    console.error('Error removing prompt from collection:', error);
+    res.status(500).json({ error: 'Failed to remove prompt from collection' });
+  }
+});
+
+// Delete collection
+app.delete('/api/collections/:collectionId', async (req, res) => {
+  try {
+    const { collectionId } = req.params;
+    const collectionPath = path.join(COLLECTIONS_DIR, `${collectionId}.json`);
+    
+    // Read collection to get all prompts
+    const collectionData = JSON.parse(await fsPromises.readFile(collectionPath, 'utf-8'));
+    
+    // Remove collection ID from all prompts in the collection
+    for (const promptId of collectionData.prompts) {
+      try {
+        const promptPath = path.join(PROMPTS_DIR, promptId);
+        const promptData = JSON.parse(await fsPromises.readFile(promptPath, 'utf-8'));
+        delete promptData.collectionId;
+        await fsPromises.writeFile(promptPath, JSON.stringify(promptData, null, 2), 'utf-8');
+      } catch (error) {
+        console.error(`Error updating prompt ${promptId}:`, error);
+      }
+    }
+    
+    // Delete collection file
+    await fsPromises.unlink(collectionPath);
+    
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting collection:', error);
+    res.status(500).json({ error: 'Failed to delete collection' });
+  }
+});
+
+// Reorder prompts
+app.post('/api/prompts/reorder', async (req, res) => {
+  try {
+    const { prompts } = req.body;
+    
+    // Update each prompt with its new order
+    for (let i = 0; i < prompts.length; i++) {
+      const promptPath = path.join(PROMPTS_DIR, prompts[i].filename);
+      const promptData = JSON.parse(await fsPromises.readFile(promptPath, 'utf-8'));
+      promptData.order = i;
+      await fsPromises.writeFile(promptPath, JSON.stringify(promptData, null, 2), 'utf-8');
+    }
+    
+    res.json({ message: 'Prompts reordered successfully' });
+  } catch (error) {
+    console.error('Error reordering prompts:', error);
+    res.status(500).json({ error: 'Failed to reorder prompts' });
   }
 });
 

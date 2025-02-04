@@ -93,7 +93,7 @@ body {
 
 /* Left Sidebar */
 .sidebar-left {
-  width: 280px;
+  width: 340px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -110,12 +110,12 @@ body {
 }
 
 .sidebar-left.collapsed {
-  transform: translateX(-322px);
+  transform: translateX(-382px);
 }
 
 /* Right Sidebar */
 .sidebar-right {
-  width: 280px;
+  width: 340px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -132,19 +132,19 @@ body {
 }
 
 .sidebar-right.collapsed {
-  transform: translateX(322px);
+  transform: translateX(382px);
 }
 
 .main-content {
   flex: 1;
   padding: 20px;
-  margin-left: 280px;
-  margin-right: 280px;
+  margin-left: 340px;
+  margin-right: 340px;
   transition: margin 0.3s ease;
 }
 
 .main-content.left-expanded {
-  margin-left: 280px;
+  margin-left: 340px;
 }
 
 .main-content.left-collapsed {
@@ -152,7 +152,7 @@ body {
 }
 
 .main-content.right-expanded {
-  margin-right: 280px;
+  margin-right: 340px;
 }
 
 .main-content.right-collapsed {
@@ -162,7 +162,7 @@ body {
 /* Left Sidebar Toggle */
 .sidebar-toggle-left {
   position: fixed;
-  left: 322px;
+  left: 382px;
   top: 80px;
   background-color: var(--primary-color);
   color: white;
@@ -187,7 +187,7 @@ body {
 /* Right Sidebar Toggle */
 .sidebar-toggle-right {
   position: fixed;
-  right: 322px;
+  right: 382px;
   top: 80px;
   background-color: var(--primary-color);
   color: white;
@@ -211,7 +211,7 @@ body {
 
 @media (max-width: 768px) {
   .sidebar-left {
-    transform: translateX(-322px);
+    transform: translateX(-382px);
   }
   
   .sidebar-left.expanded {
@@ -219,7 +219,7 @@ body {
   }
 
   .sidebar-right {
-    transform: translateX(322px);
+    transform: translateX(382px);
   }
   
   .sidebar-right.expanded {
@@ -236,7 +236,7 @@ body {
   }
   
   .sidebar-toggle-left.expanded {
-    left: 322px;
+    left: 382px;
   }
 
   .sidebar-toggle-right {
@@ -244,7 +244,7 @@ body {
   }
   
   .sidebar-toggle-right.expanded {
-    right: 322px;
+    right: 382px;
   }
 }
 
@@ -489,16 +489,17 @@ input[type="text"]:focus {
   z-index: 101;
   border-radius: 4px;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .sidebar-title.left {
-  left: 322px;
+  left: 382px;
   border-radius: 0 4px 4px 0;
   transition: left 0.3s ease;
 }
 
 .sidebar-title.right {
-  right: 322px;
+  right: 382px;
   border-radius: 4px 0 0 4px;
   transition: right 0.3s ease;
 }
@@ -521,10 +522,10 @@ input[type="text"]:focus {
   }
 
   .sidebar-title.left.expanded {
-    left: 322px;
+    left: 382px;
   }
 
   .sidebar-title.right.expanded {
-    right: 322px;
+    right: 382px;
   }
 }
