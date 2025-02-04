@@ -26,6 +26,17 @@ function PromptManager({ onLoadPrompt }) {
     loadPrompts();
   }, [lastUpdate]);
 
+  useEffect(() => {
+    const handlePromptSaved = () => {
+      setLastUpdate(Date.now());
+    };
+
+    window.addEventListener('PROMPT_SAVED', handlePromptSaved);
+    return () => {
+      window.removeEventListener('PROMPT_SAVED', handlePromptSaved);
+    };
+  }, []);
+
   const handleLoadPrompt = (prompt) => {
     if (onLoadPrompt) {
       onLoadPrompt(prompt.prompt);

@@ -17,7 +17,7 @@ function SavePromptDialog({ prompt, onClose, onSaved }) {
 
     try {
       setSaving(true);
-      const response = await axios.post('http://localhost:3001/api/prompts', {
+      await axios.post('http://localhost:3001/api/prompts', {
         label: label.trim(),
         description: description.trim(),
         prompt,

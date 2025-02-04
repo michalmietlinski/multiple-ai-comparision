@@ -27,7 +27,8 @@ function ComparisonForm({
 
   const handleSaved = () => {
     setShowSaveDialog(false);
-    // Optionally show a success message or update UI
+    // Trigger a refresh in the PromptManager by updating lastUpdate
+    window.dispatchEvent(new Event('PROMPT_SAVED'));
   };
 
   return (
