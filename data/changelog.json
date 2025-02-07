@@ -1,7 +1,17 @@
 {
   "entries": [
     {
-      "date": "2024-03-22",
+      "date": "2025-02-07",
+      "title": "Added Gemini Support",
+      "items": [
+        "Added Google AI (Gemini) integration",
+        "Support for gemini-pro and gemini-pro-vision models",
+        "Updated API key management interface",
+        "Added Gemini setup instructions"
+      ]
+    },
+    {
+      "date": "2025-02-04",
       "title": "Collections and Prompt Organization",
       "items": [
         "Added collections for organizing prompts",
@@ -10,54 +20,46 @@
         "Added collection deletion with prompts"
       ]
     },
-	{
-		"date": "2024-03-21",
-		"title": "Added Export Features",
-		"items": [
-		  "Added single response export in model comparison",
-		  "Added full conversation export in threaded mode",
-		  "Added historical conversation export",
-		  "Export data includes timestamps and metadata"
-		]
-	},
-	{
-		"date": "2024-03-21",
-		"title": "Enhanced Prompt Management",
-		"items": [
-		  "Added prompt saving with labels and descriptions",
-		  "Implemented Import/Export functionality for prompt collections",
-		  "Added quick load feature for saved prompts",
-		  "Improved prompt list refresh on changes"
-		]
-	  },
     {
-      "date": "2024-03-20",
-      "title": "Added Multi-Provider Support",
+      "date": "2025-02-03",
+      "title": "Added Export Features",
       "items": [
-        "Support for OpenAI, DeepSeek, and Anthropic APIs",
-        "Custom API endpoint configuration",
-        "Multiple API keys management",
-        "⚠️ DeepSeek and Anthropic integration needs testing"
+        "Added single response export in model comparison",
+        "Added full conversation export in threaded mode",
+        "Added historical conversation export",
+        "Export data includes timestamps and metadata"
       ]
     },
     {
-      "date": "2024-03-20",
+      "date": "2025-02-03",
+      "title": "Enhanced Prompt Management",
+      "items": [
+        "Added prompt saving with labels and descriptions",
+        "Implemented Import/Export functionality for prompt collections",
+        "Added quick load feature for saved prompts",
+        "Improved prompt list refresh on changes"
+      ]
+    },
+    {
+      "date": "2025-02-03",
       "title": "UI/UX Improvements",
       "items": [
         "Added interactive help system for API setup",
         "Improved navigation with active page highlighting",
         "Added changelog section to track updates",
-        "Enhanced API key management interface"
+        "Enhanced API key management interface",
+        "Night mode improvements"
       ]
     },
     {
-      "date": "2024-03-19",
+      "date": "2025-02-02",
       "title": "Initial Release",
       "items": [
         "Basic model comparison",
         "Conversation threading",
         "History management",
-        "Response logging system"
+        "Response logging system",
+        "Initial file setup"
       ]
     }
   ]

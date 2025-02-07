@@ -23,6 +23,13 @@
       "key": "...",
       "url": "https://api.deepseek.com/v1",
       "active": true
+    },
+    {
+      "id": 1234567893,
+      "name": "Example Gemini",
+      "provider": "gemini",
+      "key": "...",
+      "active": true
     }
   ]
 } 

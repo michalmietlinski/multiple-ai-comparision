@@ -37,6 +37,17 @@ const PROVIDER_INSTRUCTIONS = {
       "Copy the key"
     ],
     link: "https://platform.deepseek.com/"
+  },
+  gemini: {
+    title: "Google AI (Gemini) API Key",
+    steps: [
+      "Go to ai.google.dev",
+      "Sign in with your Google account",
+      "Click 'Get API key'",
+      "Create a new project or select existing one",
+      "Copy your API key"
+    ],
+    link: "https://ai.google.dev/"
   }
 };
 
@@ -196,6 +207,7 @@ function ApiManager() {
               <option value="openai">OpenAI</option>
               <option value="deepseek">DeepSeek</option>
               <option value="anthropic">Anthropic</option>
+              <option value="gemini">Google AI (Gemini)</option>
               <option value="custom">Custom Provider</option>
             </select>
             <button 

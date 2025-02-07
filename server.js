@@ -7,6 +7,7 @@ import fsPromises from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -45,6 +46,9 @@ const DEFAULT_PROVIDER_CONFIGS = {
   anthropic: {
     url: 'https://api.anthropic.com/v1',
     models: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
+  },
+  gemini: {
+    models: ['gemini-pro', 'gemini-pro-vision']
   }
 };
 
@@ -242,6 +246,15 @@ app.get('/api/models', async (req, res) => {
               }));
             break;
             
+          case 'gemini':
+            models = DEFAULT_PROVIDER_CONFIGS.gemini.models.map(modelId => ({
+              id: modelId,
+              name: modelId,
+              provider: 'gemini',
+              apiId: api.id
+            }));
+            break;
+            
           case 'deepseek':
           case 'anthropic':
             // For providers without model list API, use default configs
@@ -269,14 +282,14 @@ app.get('/api/models', async (req, res) => {
         
         allModels.push(...models);
       } catch (error) {
-        console.error(`Error fetching models for ${api.name}:`, error);
+        console.error(`Error fetching models for ${api.provider}:`, error);
       }
     }
     
     res.json(allModels);
   } catch (error) {
-    console.error('Error fetching models:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Error getting models:', error);
+    res.status(500).json({ error: 'Failed to get models' });
   }
 });
 
@@ -287,36 +300,36 @@ app.post('/api/chat', async (req, res) => {
     const config = await getDefaultApiConfig();
     const responses = [];
     
-    // Get all available models first
-    const availableModels = await getAllModels(config);
-    
     for (const modelId of models) {
       try {
-        // Find the model in our available models
-        const model = availableModels.find(m => m.id === modelId);
-        if (!model) {
-          throw new Error(`Model ${modelId} not found`);
-        }
+        const api = config.apis.find(api => 
+          api.active && modelId.includes(api.provider)
+        );
         
-        const api = config.apis.find(a => a.id === model.apiId);
         if (!api) {
-          throw new Error(`No API configuration found for model ${modelId}`);
+          throw new Error(`No active API found for model ${modelId}`);
         }
         
         let response;
+        
         switch (api.provider) {
           case 'openai':
             const openai = new OpenAI({
               apiKey: api.key,
               baseURL: api.url || DEFAULT_PROVIDER_CONFIGS.openai.url
             });
-            
             const completion = await openai.chat.completions.create({
               model: modelId,
-              messages: [{ role: 'user', content: prompt }],
+              messages: [{ role: 'user', content: prompt }]
             });
-            
             response = completion.choices[0].message.content;
+            break;
+            
+          case 'gemini':
+            const genAI = new GoogleGenerativeAI(api.key);
+            const model = genAI.getGenerativeModel({ model: modelId });
+            const result = await model.generateContent(prompt);
+            response = result.response.text();
             break;
             
           // Add other providers here
@@ -332,16 +345,17 @@ app.post('/api/chat', async (req, res) => {
         console.error(`Error with model ${modelId}:`, error);
         responses.push({
           model: modelId,
-          error: error.message
+          response: `Error: ${error.message}`
         });
       }
     }
     
-    const { fileName } = saveConversation(models, prompt, responses);
-    res.json({ responses, fileName });
+    const { fileName, dateStr } = saveConversation(models, prompt, responses);
+    res.json({ responses, fileName, date: dateStr });
+    
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Error in chat endpoint:', error);
+    res.status(500).json({ error: 'Failed to process chat request' });
   }
 });
 
