@@ -10,6 +10,7 @@ import { dirname } from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { DEFAULT_PROVIDER_CONFIGS, validateProviderConfig } from './src/server/config/providerConfig.js';
 import { initializeDirectories, DIRECTORIES, FILES } from './src/server/utils/directoryManager.js';
+import { saveConversation, getAllLogs, deleteConversation, clearAllLogs } from './src/server/services/conversationService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,46 +30,50 @@ app.use(express.json());
 // Initialize all required directories
 await initializeDirectories();
 
-const logsDir = DIRECTORIES.LOGS;
 const THREAD_LOGS_DIR = DIRECTORIES.THREAD_LOGS;
 const API_CONFIG_PATH = FILES.API_CONFIG;
 const CHANGELOG_PATH = FILES.CHANGELOG;
 const PROMPTS_DIR = DIRECTORIES.PROMPTS;
 const COLLECTIONS_DIR = DIRECTORIES.COLLECTIONS;
 
-const saveConversation = (models, prompt, responses) => {
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
-  const timeStr = now.toISOString().split('T')[1].replace(/:/g, '-').split('.')[0];
-  const modelNames = models.join('_vs_');
-  
-  const fileName = `${dateStr}_${timeStr}_${modelNames}.json`;
-  const filePath = path.join(DIRECTORIES.LOGS, dateStr);
-  
-  if (!fs.existsSync(filePath)) {
-    fs.mkdirSync(filePath, { recursive: true });
-  }
-  
-  const conversationData = {
-    timestamp: now.toISOString(),
-    prompt,
-    responses: responses.map(r => ({
-      model: r.model,
-      response: r.response
-    }))
-  };
-  
-  fs.writeFileSync(
-    path.join(filePath, fileName),
-    JSON.stringify(conversationData, null, 2)
-  );
-  
-  return { fileName, dateStr };
-};
-
 app.get('/api/health', (req, res) => {
   res.set('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/logs', async (req, res) => {
+  try {
+    const logs = getAllLogs();
+    res.json(logs);
+  } catch (error) {
+    console.error('Error fetching logs:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/logs/:date/:filename', async (req, res) => {
+  try {
+    const { date, filename } = req.params;
+    await deleteConversation(date, filename);
+    res.json({ message: 'Conversation deleted successfully' });
+  } catch (error) {
+    if (error.message === 'Conversation not found') {
+      res.status(404).json({ error: error.message });
+    } else {
+      console.error('Error deleting conversation:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+});
+
+app.delete('/api/logs', async (req, res) => {
+  try {
+    await clearAllLogs();
+    res.json({ message: 'All history cleared successfully' });
+  } catch (error) {
+    console.error('Error clearing history:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 async function getDefaultApiConfig() {
@@ -315,79 +320,6 @@ async function getAllModels(config) {
   
   return allModels;
 }
-
-app.get('/api/logs', async (req, res) => {
-  try {
-    const logs = [];
-    // Read all date directories
-    const dates = fs.readdirSync(DIRECTORIES.LOGS);
-    
-    dates.forEach(date => {
-      const dateDir = path.join(DIRECTORIES.LOGS, date);
-      if (fs.statSync(dateDir).isDirectory()) {
-        // Read all conversation files for this date
-        const files = fs.readdirSync(dateDir);
-        files.forEach(file => {
-          const filePath = path.join(dateDir, file);
-          const conversation = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-          logs.push({
-            date,
-            fileName: file,
-            ...conversation
-          });
-        });
-      }
-    });
-    
-    logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    res.json(logs);
-  } catch (error) {
-    console.error('Error fetching logs:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.delete('/api/logs/:date/:filename', async (req, res) => {
-  try {
-    const { date, filename } = req.params;
-    const filePath = path.join(DIRECTORIES.LOGS, date, filename);
-    
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      
-      // Remove date directory if empty
-      const dateDir = path.join(DIRECTORIES.LOGS, date);
-      if (fs.readdirSync(dateDir).length === 0) {
-        fs.rmdirSync(dateDir);
-      }
-      
-      res.json({ message: 'Conversation deleted successfully' });
-    } else {
-      res.status(404).json({ error: 'Conversation not found' });
-    }
-  } catch (error) {
-    console.error('Error deleting conversation:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.delete('/api/logs', async (req, res) => {
-  try {
-    const dates = fs.readdirSync(DIRECTORIES.LOGS);
-    
-    dates.forEach(date => {
-      const dateDir = path.join(DIRECTORIES.LOGS, date);
-      if (fs.statSync(dateDir).isDirectory()) {
-        fs.rmSync(dateDir, { recursive: true, force: true });
-      }
-    });
-    
-    res.json({ message: 'All history cleared successfully' });
-  } catch (error) {
-    console.error('Error clearing history:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 app.post('/api/thread-chat', async (req, res) => {
   const { threadId, prompt, models, previousMessages } = req.body;
