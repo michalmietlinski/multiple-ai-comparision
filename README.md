@@ -1,8 +1,8 @@
 # AI Model Comparison Tool
-Initially created in https://github.com/michalmietlinski/2025-simple-scripts/tree/main/simple-chat-model-comparision/chat-model-comparison
-as a simple script to compare responses from different AI language models side by side, with support for both single-shot and threaded conversations.
+A powerful tool for comparing responses from different AI language models in threaded conversations, with comprehensive prompt management and API configuration capabilities.
 
-Now expanding it into more complex tool with more features and better UI/UX.
+Initially created in https://github.com/michalmietlinski/2025-simple-scripts/tree/main/simple-chat-model-comparision/chat-model-comparison
+and evolved into a more sophisticated application with enhanced features and improved UI/UX.
 
 ![Step 1](./public/images/1.png)
 ![Step 2](./public/images/2.png)
@@ -17,10 +17,11 @@ Now expanding it into more complex tool with more features and better UI/UX.
   - Anthropic (coming soon)
   - Custom API endpoint configuration
 
-- **Conversation Modes**
-  - Single-shot comparison
-  - Threaded conversations
-  - History tracking and management
+- **Threaded Conversations**
+  - Multi-model threaded chats
+  - Persistent conversation history
+  - Thread management and organization
+  - Export conversation functionality
 
 - **Prompt Management**
   - Save and organize prompts
@@ -97,10 +98,11 @@ npm run server
 ## Usage
 
 1. **Model Selection**: Choose which AI models you want to compare
-2. **Enter Prompt**: Type your prompt in the text area
-3. **View Responses**: See responses side by side
-4. **Thread Mode**: Continue conversations with context
-5. **Collections**: Organize prompts into collections for better management
+2. **Start a Thread**: Enter your initial prompt to begin a conversation
+3. **Compare Responses**: View model responses side by side or stacked
+4. **Continue Conversation**: Keep the context going with follow-up messages
+5. **Manage Threads**: Save, load, and organize your conversation threads
+6. **Collections**: Organize prompts into collections for better management
 
 ## Contributing
 
@@ -109,8 +111,7 @@ This project is in active development. Contributions are welcome! Please check t
 ### Development Plans
 
 1. **Phase 1** (Completed)
-   - Basic model comparison
-   - Thread support
+   - Threaded conversations
    - Multi-provider groundwork
    - Dark/Light theme
    - Prompt collections

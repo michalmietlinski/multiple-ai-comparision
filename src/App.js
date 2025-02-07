@@ -1,32 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import axios from 'axios';
 import ThreadedComparison from './components/ThreadedComparison';
 import ApiManager from './components/ApiManager';
 import ThemeToggle from './components/ThemeToggle';
 import PromptManager from './components/PromptManager';
 import './App.css';
-
-// Create a new component for the navigation
-function Navigation() {
-  const location = useLocation();
-  
-  return (
-    <div className="nav-section">
-      <h3>Navigation</h3>
-      <ul>
-        <li>
-          <Link 
-            to="/" 
-            className={location.pathname === '/' ? 'active' : ''}
-          >
-            Threaded Comparison
-          </Link>
-        </li>
-      </ul>
-    </div>
-  );
-}
 
 // Create a new component for the changelog
 function Changelog() {
@@ -39,7 +18,11 @@ function Changelog() {
       try {
         setLoading(true);
         const response = await axios.get('http://localhost:3001/api/changelog');
-        setEntries(response.data.entries);
+        // Sort entries by date in descending order (newest first)
+        const sortedEntries = [...response.data.entries].sort((a, b) => {
+          return new Date(b.date) - new Date(a.date);
+        });
+        setEntries(sortedEntries);
       } catch (error) {
         console.error('Error fetching changelog:', error);
         setError('Failed to load changelog');
@@ -114,16 +97,6 @@ function App() {
 
   const [currentPrompt, setCurrentPrompt] = useState('');
 
-  const [prompt, setPrompt] = useState('');
-  const [selectedModels, setSelectedModels] = useState([]);
-  const [availableModels, setAvailableModels] = useState([]);
-  const [modelsLoading, setModelsLoading] = useState(true);
-  const [modelsError, setModelsError] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [responses, setResponses] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [modelsLocked, setModelsLocked] = useState(false);
-
   useEffect(() => {
     checkHealth();
     const interval = setInterval(checkHealth, 30000); 
@@ -189,20 +162,6 @@ function App() {
     setCurrentPrompt(promptText);
   };
 
-  const handleSubmit = (data) => {
-    setResponses(data.responses);
-    setHistory(data.history || []);
-    setModelsLocked(true); // Lock models after first response
-  };
-
-  const clearForm = () => {
-    setPrompt('');
-    setSelectedModels([]);
-    setResponses([]);
-    setHistory([]);
-    setModelsLocked(false);
-  };
-
   return (
     <BrowserRouter>
       <div className="app-container">
@@ -228,8 +187,6 @@ function App() {
 
           <ApiManager />
           
-          <Navigation />
-
           <div className="help-section">
             <h3>Quick Guide</h3>
             <div className="steps">
@@ -252,17 +209,10 @@ function App() {
         </nav>
 
         <main className={`main-content ${isLeftSidebarCollapsed ? 'left-collapsed' : ''} ${isRightSidebarCollapsed ? 'right-collapsed' : ''}`}>
-          <Routes>
-            <Route 
-              path="/" 
-              element={
-                <ThreadedComparison 
-                  currentPrompt={currentPrompt}
-                  setCurrentPrompt={setCurrentPrompt}
-                />
-              } 
-            />
-          </Routes>
+          <ThreadedComparison 
+            currentPrompt={currentPrompt}
+            setCurrentPrompt={setCurrentPrompt}
+          />
         </main>
 
         <div 
