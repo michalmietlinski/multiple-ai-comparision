@@ -8,6 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { DEFAULT_PROVIDER_CONFIGS, validateProviderConfig } from './src/server/config/providerConfig.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,24 +34,6 @@ const THREAD_LOGS_DIR = path.join(__dirname, 'threadLogs');
 
 const API_CONFIG_PATH = path.join(__dirname, 'config', 'apis.json');
 const CHANGELOG_PATH = path.join(__dirname, 'data', 'changelog.json');
-
-const DEFAULT_PROVIDER_CONFIGS = {
-  openai: {
-    url: 'https://api.openai.com/v1',
-    models: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo-preview']
-  },
-  deepseek: {
-    url: 'https://api.deepseek.com/v1',
-    models: ['deepseek-chat', 'deepseek-coder']
-  },
-  anthropic: {
-    url: 'https://api.anthropic.com/v1',
-    models: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
-  },
-  gemini: {
-    models: ['gemini-pro', 'gemini-pro-vision']
-  }
-};
 
 // Prompt management
 const PROMPTS_DIR = path.join(__dirname, 'prompts');
@@ -197,16 +180,22 @@ async function getDefaultApiConfig() {
     );
     
     if (!envApiExists) {
-      config.apis.push({
+      const envApi = {
         id: Date.now(),
         name: 'OpenAI (ENV)',
         key: process.env.OPENAI_API_KEY,
         provider: 'openai',
         url: DEFAULT_PROVIDER_CONFIGS.openai.url,
         active: true
-      });
+      };
       
-      await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify(config, null, 2));
+      try {
+        validateProviderConfig(envApi);
+        config.apis.push(envApi);
+        await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify(config, null, 2));
+      } catch (error) {
+        console.error('Invalid OpenAI ENV configuration:', error.message);
+      }
     }
   }
   
@@ -300,10 +289,19 @@ app.post('/api/chat', async (req, res) => {
     const config = await getDefaultApiConfig();
     const responses = [];
     
+    // Get all available models first
+    const availableModels = await getAllModels(config);
+    
     for (const modelId of models) {
       try {
+        // Find the exact model in our available models
+        const modelConfig = availableModels.find(m => m.id === modelId);
+        if (!modelConfig) {
+          throw new Error(`Model ${modelId} not found in available models`);
+        }
+        
         const api = config.apis.find(api => 
-          api.active && modelId.includes(api.provider)
+          api.active && api.id === modelConfig.apiId
         );
         
         if (!api) {
@@ -1029,6 +1027,46 @@ app.post('/api/prompts/reorder', async (req, res) => {
   } catch (error) {
     console.error('Error reordering prompts:', error);
     res.status(500).json({ error: 'Failed to reorder prompts' });
+  }
+});
+
+app.post('/api/keys', async (req, res) => {
+  try {
+    const newApi = req.body;
+    validateProviderConfig(newApi);
+    
+    const config = await getDefaultApiConfig();
+    newApi.id = Date.now();
+    newApi.active = true;
+    
+    config.apis.push(newApi);
+    await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify(config, null, 2));
+    
+    res.json(newApi);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/keys/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedApi = req.body;
+    validateProviderConfig(updatedApi);
+    
+    const config = await getDefaultApiConfig();
+    const index = config.apis.findIndex(api => api.id === parseInt(id));
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'API configuration not found' });
+    }
+    
+    config.apis[index] = { ...config.apis[index], ...updatedApi };
+    await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify(config, null, 2));
+    
+    res.json(config.apis[index]);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
