@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { DEFAULT_PROVIDER_CONFIGS, validateProviderConfig } from './src/server/config/providerConfig.js';
+import { initializeDirectories, DIRECTORIES, FILES } from './src/server/utils/directoryManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,116 +26,15 @@ app.use(cors({
 
 app.use(express.json());
 
-const logsDir = path.join(__dirname, 'logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir);
-}
+// Initialize all required directories
+await initializeDirectories();
 
-const THREAD_LOGS_DIR = path.join(__dirname, 'threadLogs');
-
-const API_CONFIG_PATH = path.join(__dirname, 'config', 'apis.json');
-const CHANGELOG_PATH = path.join(__dirname, 'data', 'changelog.json');
-
-// Prompt management
-const PROMPTS_DIR = path.join(__dirname, 'prompts');
-const COLLECTIONS_DIR = path.join(__dirname, 'collections');
-
-// Ensure prompts and collections directories exist during initialization
-await (async function initializeDirectories() {
-  try {
-    await fsPromises.mkdir(PROMPTS_DIR, { recursive: true });
-    await fsPromises.mkdir(COLLECTIONS_DIR, { recursive: true });
-  } catch (error) {
-    console.error('Error creating directories:', error);
-  }
-})();
-
-async function ensureThreadLogsDir() {
-  try {
-    await fsPromises.access(THREAD_LOGS_DIR);
-  } catch {
-    await fsPromises.mkdir(THREAD_LOGS_DIR);
-  }
-}
-
-async function ensureConfigDir() {
-  // Create config directory
-  const configDir = path.join(__dirname, 'config');
-  try {
-    await fsPromises.access(configDir);
-  } catch {
-    await fsPromises.mkdir(configDir);
-  }
-  
-  // Create data directory for non-sensitive data
-  const dataDir = path.join(__dirname, 'data');
-  try {
-    await fsPromises.access(dataDir);
-  } catch {
-    await fsPromises.mkdir(dataDir);
-  }
-  
-  // Ensure apis.json exists
-  try {
-    await fsPromises.access(API_CONFIG_PATH);
-  } catch {
-    try {
-      const examplePath = path.join(configDir, 'apis.example.json');
-      await fsPromises.access(examplePath);
-      await fsPromises.copyFile(examplePath, API_CONFIG_PATH);
-      console.log('Created apis.json from example file');
-    } catch {
-      await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify({
-        apis: []
-      }, null, 2));
-      console.log('Created empty apis.json');
-    }
-  }
-  
-  // Ensure changelog.json exists in data directory
-  try {
-    await fsPromises.access(CHANGELOG_PATH);
-  } catch {
-    await fsPromises.writeFile(CHANGELOG_PATH, JSON.stringify({
-      entries: [
-        {
-          "date": "2024-03-20",
-          "title": "Added Multi-Provider Support",
-          "items": [
-            "Support for OpenAI, DeepSeek, and Anthropic APIs",
-            "Custom API endpoint configuration",
-            "Multiple API keys management",
-            "⚠️ DeepSeek and Anthropic integration needs testing"
-          ]
-        },
-        {
-          "date": "2024-03-20",
-          "title": "UI/UX Improvements",
-          "items": [
-            "Added interactive help system for API setup",
-            "Improved navigation with active page highlighting",
-            "Added changelog section to track updates",
-            "Enhanced API key management interface"
-          ]
-        },
-        {
-          "date": "2024-03-19",
-          "title": "Initial Release",
-          "items": [
-            "Basic model comparison",
-            "Conversation threading",
-            "History management",
-            "Response logging system"
-          ]
-        }
-      ]
-    }, null, 2));
-    console.log('Created changelog.json');
-  }
-}
-
-await ensureThreadLogsDir();
-await ensureConfigDir();
+const logsDir = DIRECTORIES.LOGS;
+const THREAD_LOGS_DIR = DIRECTORIES.THREAD_LOGS;
+const API_CONFIG_PATH = FILES.API_CONFIG;
+const CHANGELOG_PATH = FILES.CHANGELOG;
+const PROMPTS_DIR = DIRECTORIES.PROMPTS;
+const COLLECTIONS_DIR = DIRECTORIES.COLLECTIONS;
 
 const saveConversation = (models, prompt, responses) => {
   const now = new Date();
@@ -143,7 +43,7 @@ const saveConversation = (models, prompt, responses) => {
   const modelNames = models.join('_vs_');
   
   const fileName = `${dateStr}_${timeStr}_${modelNames}.json`;
-  const filePath = path.join(logsDir, dateStr);
+  const filePath = path.join(DIRECTORIES.LOGS, dateStr);
   
   if (!fs.existsSync(filePath)) {
     fs.mkdirSync(filePath, { recursive: true });
@@ -172,7 +72,7 @@ app.get('/api/health', (req, res) => {
 });
 
 async function getDefaultApiConfig() {
-  const config = JSON.parse(await fsPromises.readFile(API_CONFIG_PATH, 'utf-8'));
+  const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
   
   if (process.env.OPENAI_API_KEY) {
     const envApiExists = config.apis.some(api => 
@@ -192,7 +92,7 @@ async function getDefaultApiConfig() {
       try {
         validateProviderConfig(envApi);
         config.apis.push(envApi);
-        await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify(config, null, 2));
+        await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify(config, null, 2));
       } catch (error) {
         console.error('Invalid OpenAI ENV configuration:', error.message);
       }
@@ -420,10 +320,10 @@ app.get('/api/logs', async (req, res) => {
   try {
     const logs = [];
     // Read all date directories
-    const dates = fs.readdirSync(logsDir);
+    const dates = fs.readdirSync(DIRECTORIES.LOGS);
     
     dates.forEach(date => {
-      const dateDir = path.join(logsDir, date);
+      const dateDir = path.join(DIRECTORIES.LOGS, date);
       if (fs.statSync(dateDir).isDirectory()) {
         // Read all conversation files for this date
         const files = fs.readdirSync(dateDir);
@@ -450,13 +350,13 @@ app.get('/api/logs', async (req, res) => {
 app.delete('/api/logs/:date/:filename', async (req, res) => {
   try {
     const { date, filename } = req.params;
-    const filePath = path.join(logsDir, date, filename);
+    const filePath = path.join(DIRECTORIES.LOGS, date, filename);
     
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
       
       // Remove date directory if empty
-      const dateDir = path.join(logsDir, date);
+      const dateDir = path.join(DIRECTORIES.LOGS, date);
       if (fs.readdirSync(dateDir).length === 0) {
         fs.rmdirSync(dateDir);
       }
@@ -473,10 +373,10 @@ app.delete('/api/logs/:date/:filename', async (req, res) => {
 
 app.delete('/api/logs', async (req, res) => {
   try {
-    const dates = fs.readdirSync(logsDir);
+    const dates = fs.readdirSync(DIRECTORIES.LOGS);
     
     dates.forEach(date => {
-      const dateDir = path.join(logsDir, date);
+      const dateDir = path.join(DIRECTORIES.LOGS, date);
       if (fs.statSync(dateDir).isDirectory()) {
         fs.rmSync(dateDir, { recursive: true, force: true });
       }
@@ -751,7 +651,7 @@ app.delete('/api/threads', async (req, res) => {
 
 app.get('/api/provider-apis', async (req, res) => {
   try {
-    const config = JSON.parse(await fsPromises.readFile(API_CONFIG_PATH, 'utf-8'));
+    const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
     res.json(config.apis);
   } catch (error) {
     console.error('Error reading APIs:', error);
@@ -762,7 +662,7 @@ app.get('/api/provider-apis', async (req, res) => {
 app.post('/api/provider-apis', async (req, res) => {
   try {
     const { name, key, provider = 'openai', active = true, url } = req.body;
-    const config = JSON.parse(await fsPromises.readFile(API_CONFIG_PATH, 'utf-8'));
+    const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
     
     const newApi = {
       id: Date.now(),
@@ -774,7 +674,7 @@ app.post('/api/provider-apis', async (req, res) => {
     };
     
     config.apis.push(newApi);
-    await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify(config, null, 2));
+    await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify(config, null, 2));
     
     res.json(newApi);
   } catch (error) {
@@ -786,10 +686,10 @@ app.post('/api/provider-apis', async (req, res) => {
 app.delete('/api/provider-apis/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const config = JSON.parse(await fsPromises.readFile(API_CONFIG_PATH, 'utf-8'));
+    const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
     
     config.apis = config.apis.filter(api => api.id !== parseInt(id));
-    await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify(config, null, 2));
+    await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify(config, null, 2));
     
     res.json({ message: 'API deleted successfully' });
   } catch (error) {
@@ -802,13 +702,13 @@ app.patch('/api/provider-apis/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
-    const config = JSON.parse(await fsPromises.readFile(API_CONFIG_PATH, 'utf-8'));
+    const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
     
     config.apis = config.apis.map(api => 
       api.id === parseInt(id) ? { ...api, ...updates } : api
     );
     
-    await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify(config, null, 2));
+    await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify(config, null, 2));
     res.json(config.apis.find(api => api.id === parseInt(id)));
   } catch (error) {
     console.error('Error updating API:', error);
@@ -1040,7 +940,7 @@ app.post('/api/keys', async (req, res) => {
     newApi.active = true;
     
     config.apis.push(newApi);
-    await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify(config, null, 2));
+    await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify(config, null, 2));
     
     res.json(newApi);
   } catch (error) {
@@ -1054,7 +954,7 @@ app.put('/api/keys/:id', async (req, res) => {
     const updatedApi = req.body;
     validateProviderConfig(updatedApi);
     
-    const config = await getDefaultApiConfig();
+    const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
     const index = config.apis.findIndex(api => api.id === parseInt(id));
     
     if (index === -1) {
@@ -1062,7 +962,7 @@ app.put('/api/keys/:id', async (req, res) => {
     }
     
     config.apis[index] = { ...config.apis[index], ...updatedApi };
-    await fsPromises.writeFile(API_CONFIG_PATH, JSON.stringify(config, null, 2));
+    await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify(config, null, 2));
     
     res.json(config.apis[index]);
   } catch (error) {
