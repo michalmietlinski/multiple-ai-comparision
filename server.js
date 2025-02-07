@@ -8,9 +8,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { DEFAULT_PROVIDER_CONFIGS, validateProviderConfig } from './src/server/config/providerConfig.js';
+import { DEFAULT_PROVIDER_CONFIGS } from './src/server/config/providerConfig.js';
 import { initializeDirectories, DIRECTORIES, FILES } from './src/server/utils/directoryManager.js';
 import { saveConversation, getAllLogs, deleteConversation, clearAllLogs } from './src/server/services/conversationService.js';
+import { getDefaultApiConfig, getAllModels, addApiConfig, deleteApiConfig, updateApiConfig } from './src/server/services/apiService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -76,111 +77,51 @@ app.delete('/api/logs', async (req, res) => {
   }
 });
 
-async function getDefaultApiConfig() {
-  const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
-  
-  if (process.env.OPENAI_API_KEY) {
-    const envApiExists = config.apis.some(api => 
-      api.key === process.env.OPENAI_API_KEY && api.provider === 'openai'
-    );
-    
-    if (!envApiExists) {
-      const envApi = {
-        id: Date.now(),
-        name: 'OpenAI (ENV)',
-        key: process.env.OPENAI_API_KEY,
-        provider: 'openai',
-        url: DEFAULT_PROVIDER_CONFIGS.openai.url,
-        active: true
-      };
-      
-      try {
-        validateProviderConfig(envApi);
-        config.apis.push(envApi);
-        await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify(config, null, 2));
-      } catch (error) {
-        console.error('Invalid OpenAI ENV configuration:', error.message);
-      }
-    }
+app.get('/api/provider-apis', async (req, res) => {
+  try {
+    const config = await getDefaultApiConfig();
+    res.json(config.apis);
+  } catch (error) {
+    console.error('Error reading APIs:', error);
+    res.status(500).json({ error: error.message });
   }
-  
-  return config;
-}
+});
+
+app.post('/api/provider-apis', async (req, res) => {
+  try {
+    const newApi = await addApiConfig(req.body);
+    res.json(newApi);
+  } catch (error) {
+    console.error('Error adding API:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/provider-apis/:id', async (req, res) => {
+  try {
+    await deleteApiConfig(req.params.id);
+    res.json({ message: 'API deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting API:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch('/api/provider-apis/:id', async (req, res) => {
+  try {
+    const updatedApi = await updateApiConfig(req.params.id, req.body);
+    res.json(updatedApi);
+  } catch (error) {
+    console.error('Error updating API:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.get('/api/models', async (req, res) => {
   try {
     const config = await getDefaultApiConfig();
-    const activeApis = config.apis.filter(api => api.active);
-    
-    if (activeApis.length === 0) {
-      return res.json([]);
-    }
-    
-    const allModels = [];
-    
-    for (const api of activeApis) {
-      try {
-        let models = [];
-        
-        switch (api.provider) {
-          case 'openai':
-            const openai = new OpenAI({ 
-              apiKey: api.key,
-              baseURL: api.url || DEFAULT_PROVIDER_CONFIGS.openai.url
-            });
-            const openaiModels = await openai.models.list();
-            models = openaiModels.data
-              .filter(model => model.id.includes('gpt'))
-              .map(model => ({
-                id: model.id,
-                name: model.id,
-                provider: 'openai',
-                apiId: api.id,
-                url: api.url
-              }));
-            break;
-            
-          case 'gemini':
-            models = DEFAULT_PROVIDER_CONFIGS.gemini.models.map(modelId => ({
-              id: modelId,
-              name: modelId,
-              provider: 'gemini',
-              apiId: api.id
-            }));
-            break;
-            
-          case 'deepseek':
-          case 'anthropic':
-            // For providers without model list API, use default configs
-            models = DEFAULT_PROVIDER_CONFIGS[api.provider].models.map(modelId => ({
-              id: modelId,
-              name: modelId,
-              provider: api.provider,
-              apiId: api.id,
-              url: api.url
-            }));
-            break;
-            
-          default:
-            // For custom providers, allow manual model specification
-            if (api.models) {
-              models = api.models.map(modelId => ({
-                id: modelId,
-                name: modelId,
-                provider: api.provider,
-                apiId: api.id,
-                url: api.url
-              }));
-            }
-        }
-        
-        allModels.push(...models);
-      } catch (error) {
-        console.error(`Error fetching models for ${api.provider}:`, error);
-      }
-    }
-    
-    res.json(allModels);
+    const models = await getAllModels(config);
+    res.json(models);
   } catch (error) {
     console.error('Error getting models:', error);
     res.status(500).json({ error: 'Failed to get models' });
@@ -261,65 +202,6 @@ app.post('/api/chat', async (req, res) => {
     res.status(500).json({ error: 'Failed to process chat request' });
   }
 });
-
-// Add helper function to get all models
-async function getAllModels(config) {
-  const activeApis = config.apis.filter(api => api.active);
-  const allModels = [];
-  
-  for (const api of activeApis) {
-    try {
-      let models = [];
-      
-      switch (api.provider) {
-        case 'openai':
-          const openai = new OpenAI({ 
-            apiKey: api.key,
-            baseURL: api.url || DEFAULT_PROVIDER_CONFIGS.openai.url
-          });
-          const openaiModels = await openai.models.list();
-          models = openaiModels.data
-            .filter(model => model.id.includes('gpt'))
-            .map(model => ({
-              id: model.id,
-              name: model.id,
-              provider: 'openai',
-              apiId: api.id,
-              url: api.url
-            }));
-          break;
-          
-        case 'deepseek':
-        case 'anthropic':
-          models = DEFAULT_PROVIDER_CONFIGS[api.provider].models.map(modelId => ({
-            id: modelId,
-            name: modelId,
-            provider: api.provider,
-            apiId: api.id,
-            url: api.url
-          }));
-          break;
-          
-        default:
-          if (api.models) {
-            models = api.models.map(modelId => ({
-              id: modelId,
-              name: modelId,
-              provider: api.provider,
-              apiId: api.id,
-              url: api.url
-            }));
-          }
-      }
-      
-      allModels.push(...models);
-    } catch (error) {
-      console.error(`Error fetching models for ${api.name}:`, error);
-    }
-  }
-  
-  return allModels;
-}
 
 app.post('/api/thread-chat', async (req, res) => {
   const { threadId, prompt, models, previousMessages } = req.body;
@@ -578,73 +460,6 @@ app.delete('/api/threads', async (req, res) => {
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: 'Failed to delete all threads' });
-  }
-});
-
-app.get('/api/provider-apis', async (req, res) => {
-  try {
-    const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
-    res.json(config.apis);
-  } catch (error) {
-    console.error('Error reading APIs:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/provider-apis', async (req, res) => {
-  try {
-    const { name, key, provider = 'openai', active = true, url } = req.body;
-    const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
-    
-    const newApi = {
-      id: Date.now(),
-      name,
-      key,
-      provider,
-      active,
-      url: url || DEFAULT_PROVIDER_CONFIGS[provider]?.url
-    };
-    
-    config.apis.push(newApi);
-    await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify(config, null, 2));
-    
-    res.json(newApi);
-  } catch (error) {
-    console.error('Error adding API:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.delete('/api/provider-apis/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
-    
-    config.apis = config.apis.filter(api => api.id !== parseInt(id));
-    await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify(config, null, 2));
-    
-    res.json({ message: 'API deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting API:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.patch('/api/provider-apis/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-    const config = JSON.parse(await fsPromises.readFile(FILES.API_CONFIG, 'utf-8'));
-    
-    config.apis = config.apis.map(api => 
-      api.id === parseInt(id) ? { ...api, ...updates } : api
-    );
-    
-    await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify(config, null, 2));
-    res.json(config.apis.find(api => api.id === parseInt(id)));
-  } catch (error) {
-    console.error('Error updating API:', error);
-    res.status(500).json({ error: error.message });
   }
 });
 
