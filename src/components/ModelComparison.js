@@ -22,6 +22,7 @@ function ModelComparison({ currentPrompt, setCurrentPrompt }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apis, setApis] = useState([]);
   const [selectedApiId, setSelectedApiId] = useState(null);
+  const [modelsLocked, setModelsLocked] = useState(false);
 
   useEffect(() => {
     if (currentPrompt) {
@@ -148,12 +149,41 @@ function ModelComparison({ currentPrompt, setCurrentPrompt }) {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setResponses({});
-    setSavedFileName(null);
-    
-    await fetchResponses();
+  const handleSubmit = async (data) => {
+    try {
+      setIsSubmitting(true);
+      selectedModels.forEach(model => {
+        setLoading(prev => ({ ...prev, [model]: true }));
+      });
+
+      const response = await axios.post('http://localhost:3001/api/chat', {
+        models: selectedModels,
+        prompt
+      });
+
+      const newResponses = {};
+      response.data.responses.forEach(r => {
+        newResponses[r.model] = r.response;
+      });
+
+      setResponses(newResponses);
+      setSavedFileName(response.data.fileName);
+      fetchLogs();
+      setModelsLocked(true);
+
+    } catch (error) {
+      console.error('Error:', error);
+      const errorResponses = {};
+      selectedModels.forEach(model => {
+        errorResponses[model] = `Error: ${error.message}`;
+      });
+      setResponses(errorResponses);
+    } finally {
+      setIsSubmitting(false);
+      selectedModels.forEach(model => {
+        setLoading(prev => ({ ...prev, [model]: false }));
+      });
+    }
   };
 
   const loadConversation = (conversation) => {
@@ -171,8 +201,10 @@ function ModelComparison({ currentPrompt, setCurrentPrompt }) {
 
   const clearForm = () => {
     setPrompt('');
+    setSelectedModels([]);
     setResponses({});
     setSavedFileName(null);
+    setModelsLocked(false);
   };
 
   const deleteConversation = async (date, fileName, event) => {
@@ -224,6 +256,8 @@ function ModelComparison({ currentPrompt, setCurrentPrompt }) {
         modelsError={modelsError}
         clearForm={clearForm}
         isSubmitting={isSubmitting}
+        setIsSubmitting={setIsSubmitting}
+        modelsLocked={modelsLocked}
       />
 
       <ResponseGrid 

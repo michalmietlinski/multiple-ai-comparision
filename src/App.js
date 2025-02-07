@@ -123,6 +123,16 @@ function App() {
 
   const [currentPrompt, setCurrentPrompt] = useState('');
 
+  const [prompt, setPrompt] = useState('');
+  const [selectedModels, setSelectedModels] = useState([]);
+  const [availableModels, setAvailableModels] = useState([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
+  const [modelsError, setModelsError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [responses, setResponses] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [modelsLocked, setModelsLocked] = useState(false);
+
   useEffect(() => {
     checkHealth();
     const interval = setInterval(checkHealth, 30000); 
@@ -186,6 +196,20 @@ function App() {
 
   const handleLoadPrompt = (promptText) => {
     setCurrentPrompt(promptText);
+  };
+
+  const handleSubmit = (data) => {
+    setResponses(data.responses);
+    setHistory(data.history || []);
+    setModelsLocked(true); // Lock models after first response
+  };
+
+  const clearForm = () => {
+    setPrompt('');
+    setSelectedModels([]);
+    setResponses([]);
+    setHistory([]);
+    setModelsLocked(false);
   };
 
   return (

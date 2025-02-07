@@ -12,6 +12,7 @@ import { DEFAULT_PROVIDER_CONFIGS } from './src/server/config/providerConfig.js'
 import { initializeDirectories, DIRECTORIES, FILES } from './src/server/utils/directoryManager.js';
 import { saveConversation, getAllLogs, deleteConversation, clearAllLogs } from './src/server/services/conversationService.js';
 import { getDefaultApiConfig, getAllModels, addApiConfig, deleteApiConfig, updateApiConfig } from './src/server/services/apiService.js';
+import { getThreadHistory, getAllThreads, saveThreadChat, deleteThread, deleteAllThreads, getModelThreadHistory } from './src/server/services/threadService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -204,25 +205,34 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.post('/api/thread-chat', async (req, res) => {
+  console.log('Received thread-chat request:', {
+    threadId: req.body.threadId,
+    prompt: req.body.prompt,
+    models: req.body.models,
+    previousMessagesCount: req.body.previousMessages?.length
+  });
+  
   const { threadId, prompt, models, previousMessages } = req.body;
   
   try {
     const config = await getDefaultApiConfig();
+    console.log('Got API config:', {
+      apisCount: config.apis.length,
+      activeApisCount: config.apis.filter(api => api.active).length
+    });
+    
     const responses = [];
     
     // Get all available models first
     const availableModels = await getAllModels(config);
+    console.log('Available models:', availableModels.map(m => m.id));
     
-    // Load or initialize thread history
-    const threadPath = path.join(THREAD_LOGS_DIR, `${threadId}.json`);
-    let threadHistory = [];
-    try {
-      const threadData = await fsPromises.readFile(threadPath, 'utf8');
-      threadHistory = JSON.parse(threadData);
-    } catch {
-      // New thread - add the first user message to history
-      threadHistory = previousMessages || [{ role: 'user', content: prompt }];
-    }
+    // Get conversation history first to handle potential migration
+    const { messages: threadHistory, threadId: actualThreadId } = await getThreadHistory(threadId);
+    console.log('Got thread history:', {
+      messagesCount: threadHistory?.length,
+      actualThreadId
+    });
     
     for (const modelId of models) {
       try {
@@ -237,24 +247,10 @@ app.post('/api/thread-chat', async (req, res) => {
           throw new Error(`No API configuration found for model ${modelId}`);
         }
         
-        // Get conversation history for this model
-        const modelHistory = threadHistory
-          .filter(entry => 
-            entry.role === 'user' || // Include all user messages
-            (entry.role === 'assistant' && entry.model === modelId) // Only this model's responses
-          )
-          .map(entry => {
-            // Clean up the entry to match OpenAI's expected format
-            const cleanEntry = {
-              role: entry.role,
-              content: entry.content
-            };
-            // Remove any null or undefined values
-            return Object.fromEntries(
-              Object.entries(cleanEntry).filter(([_, v]) => v != null)
-            );
-          })
-          .filter(entry => entry.role && entry.content); // Ensure valid entries only
+        // Get model-specific history
+        const modelHistory = getModelThreadHistory(threadHistory, modelId);
+        console.log('Thread History:', threadHistory);
+        console.log('Model History:', modelHistory);
         
         let response;
         switch (api.provider) {
@@ -284,150 +280,55 @@ app.post('/api/thread-chat', async (req, res) => {
           response
         });
         
-        // Add both user prompt and response to history
-        if (!threadHistory.some(msg => msg.content === prompt && msg.role === 'user')) {
-          threadHistory.push({ role: 'user', content: prompt });
-        }
-        threadHistory.push({ role: 'assistant', model: modelId, content: response });
-        
       } catch (error) {
         console.error(`Error with model ${modelId}:`, error);
         responses.push({
           model: modelId,
-          error: error.message
+          response: `Error: ${error.message}`
         });
       }
     }
     
-    // Save updated thread history
-    await fsPromises.writeFile(threadPath, JSON.stringify(threadHistory, null, 2));
+    // Save updated thread history using the actual thread ID
+    const { threadId: finalThreadId, history: updatedHistory } = await saveThreadChat(
+      actualThreadId, 
+      prompt, 
+      models, 
+      responses, 
+      previousMessages
+    );
     
-    res.json({ responses, threadId });
+    res.json({ 
+      responses, 
+      threadId: finalThreadId,
+      history: updatedHistory
+    });
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      error: error.message,
+      responses: models.map(modelId => ({
+        model: modelId,
+        response: `Error: ${error.message}`
+      }))
+    });
   }
 });
 
-// Add back the thread history endpoint with support for both formats
+// Thread management endpoints
 app.get('/api/thread-history/:threadId', async (req, res) => {
-  const { threadId } = req.params;
-  
   try {
-    const filePath = path.join(THREAD_LOGS_DIR, `${threadId}.json`);
-    const fileExists = await fsPromises.access(filePath)
-      .then(() => true)
-      .catch(() => false);
-
-    if (!fileExists) {
-      return res.json({ messages: [] });
-    }
-
-    const fileContent = await fsPromises.readFile(filePath, 'utf-8');
-    
-    try {
-      // Try new format first (JSON array)
-      const history = JSON.parse(fileContent);
-      const messages = history.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-        model: msg.model
-      }));
-      return res.json({ messages });
-    } catch {
-      // Fall back to old format
-      const logs = fileContent
-        .trim()
-        .split('\n')
-        .filter(line => line.length > 0)
-        .map(line => JSON.parse(line));
-
-      const messages = [];
-      const promptGroups = new Map();
-      
-      logs.forEach(log => {
-        if (!promptGroups.has(log.prompt)) {
-          promptGroups.set(log.prompt, []);
-        }
-        promptGroups.get(log.prompt).push(log);
-      });
-
-      promptGroups.forEach((groupLogs) => {
-        messages.push({ 
-          role: 'user', 
-          content: groupLogs[0].prompt 
-        });
-        
-        groupLogs.forEach(log => {
-          messages.push({
-            role: 'assistant',
-            model: log.model,
-            content: log.response
-          });
-        });
-      });
-
-      return res.json({ messages });
-    }
+    const history = await getThreadHistory(req.params.threadId);
+    res.json(history);
   } catch (error) {
     console.error('Error loading thread history:', error);
     res.status(500).json({ error: 'Failed to load thread history' });
   }
 });
 
-// Update the threads listing endpoint with better error handling
 app.get('/api/threads', async (req, res) => {
   try {
-    const files = await fsPromises.readdir(THREAD_LOGS_DIR);
-    const threads = [];
-    
-    for (const file of files) {
-      try {
-        const filePath = path.join(THREAD_LOGS_DIR, file);
-        const content = await fsPromises.readFile(filePath, 'utf-8');
-        const threadId = path.parse(file).name;
-        
-        try {
-          // Try new format first (JSON array)
-          const history = JSON.parse(content);
-          const firstUserMessage = history.find(msg => msg.role === 'user');
-          
-          threads.push({
-            id: threadId,
-            shortId: threadId.slice(-8),
-            firstPrompt: firstUserMessage?.content || 'No prompt found',
-            timestamp: new Date().toISOString() // Fallback timestamp
-          });
-        } catch {
-          try {
-            // Try old format (newline-delimited JSON)
-            const lines = content.trim().split('\n');
-            if (lines.length > 0) {
-              const firstEntry = JSON.parse(lines[0]);
-              
-              threads.push({
-                id: threadId,
-                shortId: threadId.slice(-8),
-                firstPrompt: firstEntry.prompt,
-                timestamp: firstEntry.timestamp
-              });
-            }
-          } catch (parseError) {
-            console.error(`Error parsing thread ${threadId}:`, parseError);
-            threads.push({
-              id: threadId,
-              shortId: threadId.slice(-8),
-              firstPrompt: 'Unable to read thread',
-              timestamp: new Date().toISOString()
-            });
-          }
-        }
-      } catch (fileError) {
-        console.error(`Error reading thread file ${file}:`, fileError);
-      }
-    }
-    
-    threads.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const threads = await getAllThreads();
     res.json({ threads });
   } catch (error) {
     console.error('Error listing threads:', error);
@@ -436,11 +337,8 @@ app.get('/api/threads', async (req, res) => {
 });
 
 app.delete('/api/thread/:threadId', async (req, res) => {
-  const { threadId } = req.params;
-  
   try {
-    const filePath = path.join(THREAD_LOGS_DIR, `${threadId}.json`);
-    await fsPromises.unlink(filePath);
+    await deleteThread(req.params.threadId);
     res.json({ message: 'Thread deleted successfully' });
   } catch (error) {
     console.error('Error:', error);
@@ -450,12 +348,7 @@ app.delete('/api/thread/:threadId', async (req, res) => {
 
 app.delete('/api/threads', async (req, res) => {
   try {
-    const files = await fsPromises.readdir(THREAD_LOGS_DIR);
-    await Promise.all(
-      files.map(file => 
-        fsPromises.unlink(path.join(THREAD_LOGS_DIR, file))
-      )
-    );
+    await deleteAllThreads();
     res.json({ message: 'All threads deleted successfully' });
   } catch (error) {
     console.error('Error:', error);

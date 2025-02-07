@@ -109,49 +109,26 @@ function ThreadedComparison({ currentPrompt, setCurrentPrompt }) {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (data) => {
     if (!modelsLocked) {
       setModelsLocked(true);
       setThreadId(uuidv4());
     }
 
     try {
-      setIsSubmitting(true);
       selectedModels.forEach(model => {
         setLoading(prev => ({ ...prev, [model]: true }));
       });
 
-      const response = await axios.post('http://localhost:3001/api/thread-chat', {
-        models: selectedModels,
-        prompt,
-        threadId,
-        previousMessages: messages
-      });
-
-      setMessages(prev => [...prev, {
-        role: 'user',
-        content: prompt
-      }]);
-
-      response.data.responses.forEach(r => {
-        if (!r.error) {
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            model: r.model,
-            content: r.response
-          }]);
-        }
-      });
-
-      setPrompt('');
-      fetchThreads();
-
+      if (data.responses && data.history) {
+        // Use the complete history from the server response
+        setMessages(data.history);
+        setPrompt('');
+        fetchThreads();
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
-      setIsSubmitting(false);
       selectedModels.forEach(model => {
         setLoading(prev => ({ ...prev, [model]: false }));
       });
@@ -255,7 +232,10 @@ function ThreadedComparison({ currentPrompt, setCurrentPrompt }) {
         modelsError={modelsError}
         clearForm={clearForm}
         isSubmitting={isSubmitting}
+        setIsSubmitting={setIsSubmitting}
         modelsLocked={modelsLocked}
+        history={messages}
+        setHistory={setMessages}
       />
       
       <ThreadedChat
