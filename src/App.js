@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import ModelComparison from './components/ModelComparison';
 import ThreadedComparison from './components/ThreadedComparison';
 import ApiManager from './components/ApiManager';
 import ThemeToggle from './components/ThemeToggle';
@@ -20,14 +19,6 @@ function Navigation() {
           <Link 
             to="/" 
             className={location.pathname === '/' ? 'active' : ''}
-          >
-            Model Comparison
-          </Link>
-        </li>
-        <li>
-          <Link 
-            to="/threaded" 
-            className={location.pathname === '/threaded' ? 'active' : ''}
           >
             Threaded Comparison
           </Link>
@@ -248,65 +239,42 @@ function App() {
               </div>
               <div className="step">
                 <span className="step-number">2</span>
-                <p>Enter your prompt in the text area</p>
+                <p>Enter your prompt and start a conversation</p>
               </div>
               <div className="step">
                 <span className="step-number">3</span>
-                <p>Click "Compare Responses" to see results</p>
-              </div>
-              <div className="step">
-                <span className="step-number">4</span>
-                <p>For threaded chat, continue the conversation after initial response</p>
+                <p>Compare responses and continue the thread</p>
               </div>
             </div>
           </div>
 
           <Changelog />
-
-       
         </nav>
-        
-        <button 
-          className={`sidebar-toggle-left ${isLeftSidebarCollapsed ? 'collapsed' : ''}`}
-          onClick={toggleLeftSidebar}
-        >
-          {isLeftSidebarCollapsed ? '→' : '←'}
-        </button>
 
-        <div className={`sidebar-title right ${isRightSidebarCollapsed ? 'collapsed' : ''}`} onClick={toggleRightSidebar}>
+        <main className={`main-content ${isLeftSidebarCollapsed ? 'left-collapsed' : ''} ${isRightSidebarCollapsed ? 'right-collapsed' : ''}`}>
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <ThreadedComparison 
+                  currentPrompt={currentPrompt}
+                  setCurrentPrompt={setCurrentPrompt}
+                />
+              } 
+            />
+          </Routes>
+        </main>
+
+        <div 
+          className={`sidebar-title right ${isRightSidebarCollapsed ? 'collapsed' : ''}`} 
+          onClick={toggleRightSidebar}
+        >
           Saved Prompts
         </div>
-
+        
         <aside className={`sidebar-right ${isRightSidebarCollapsed ? 'collapsed' : ''}`}>
           <PromptManager onLoadPrompt={handleLoadPrompt} />
         </aside>
-
-        <button 
-          className={`sidebar-toggle-right ${isRightSidebarCollapsed ? 'collapsed' : ''}`}
-          onClick={toggleRightSidebar}
-        >
-          {isRightSidebarCollapsed ? '←' : '→'}
-        </button>
-
-        <main className={`main-content 
-          ${isLeftSidebarCollapsed ? 'left-collapsed' : 'left-expanded'}
-          ${isRightSidebarCollapsed ? 'right-collapsed' : 'right-expanded'}`}
-        >
-          <Routes>
-            <Route path="/" element={
-              <ModelComparison 
-                currentPrompt={currentPrompt}
-                setCurrentPrompt={setCurrentPrompt}
-              />
-            } />
-            <Route path="/threaded" element={
-              <ThreadedComparison 
-                currentPrompt={currentPrompt}
-                setCurrentPrompt={setCurrentPrompt}
-              />
-            } />
-          </Routes>
-        </main>
       </div>
     </BrowserRouter>
   );
