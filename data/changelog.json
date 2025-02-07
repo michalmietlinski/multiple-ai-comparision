@@ -2,6 +2,17 @@
   "entries": [
     {
       "date": "2025-02-07",
+      "title": "UI Streamlining & Code Cleanup",
+      "items": [
+        "Removed single-message comparison mode in favor of threaded conversations",
+        "Improved navigation with focus on threaded comparison",
+        "Enhanced changelog display with newest updates on top",
+        "Cleaned up unused code and styles",
+        "Improved dark mode consistency"
+      ]
+    },
+    {
+      "date": "2025-02-07",
       "title": "Added Gemini Support",
       "items": [
         "Added Google AI (Gemini) integration",

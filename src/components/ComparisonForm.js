@@ -2,10 +2,25 @@ import React, { useState } from 'react';
 import SavePromptDialog from './SavePromptDialog';
 import './ComparisonForm.css';
 
+// Add local storage helper for thread ID
+const CURRENT_THREAD_KEY = 'currentThreadId';
+
+const getStoredThreadId = () => {
+  return localStorage.getItem(CURRENT_THREAD_KEY);
+};
+
+const setStoredThreadId = (threadId) => {
+  if (threadId) {
+    localStorage.setItem(CURRENT_THREAD_KEY, threadId);
+  } else {
+    localStorage.removeItem(CURRENT_THREAD_KEY);
+  }
+};
+
 function ComparisonForm({ 
   prompt, 
   setPrompt, 
-  handleSubmit, 
+  handleSubmit,
   selectedModels, 
   availableModels, 
   handleModelToggle, 
@@ -13,9 +28,13 @@ function ComparisonForm({
   modelsError,
   clearForm,
   isSubmitting,
-  modelsLocked
+  setIsSubmitting,
+  modelsLocked,
+  history = [],
+  setHistory = () => {}
 }) {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [threadId, setThreadId] = useState(getStoredThreadId());
 
   const handleSaveClick = () => {
     setShowSaveDialog(true);
@@ -29,6 +48,70 @@ function ComparisonForm({
     setShowSaveDialog(false);
     // Trigger a refresh in the PromptManager by updating lastUpdate
     window.dispatchEvent(new Event('PROMPT_SAVED'));
+  };
+
+  const handleFormSubmit = async (event) => {
+    event.preventDefault();
+    
+    let response;
+    let data;
+    try {
+      setIsSubmitting(true);
+      
+      const requestData = {
+        prompt,
+        models: selectedModels,
+        threadId: threadId,
+        previousMessages: history
+      };
+      console.log('Sending request to /api/thread-chat:', requestData);
+      
+      response = await fetch('http://localhost:3001/api/thread-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      data = await response.json();
+      console.log('Received response:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || `Server error: ${response.status}`);
+      }
+      
+      if (data.threadId) {
+        setThreadId(data.threadId);
+        setStoredThreadId(data.threadId);
+      }
+
+      if (data.history) {
+        setHistory(data.history);
+      }
+
+      if (data.responses) {
+        handleSubmit(data);
+        setPrompt('');
+      } else {
+        throw new Error('No responses received from server');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      if (!data?.responses) {
+        alert(`Failed to send message: ${error.message || 'Unknown error occurred'}`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Clear thread when starting new conversation
+  const handleClear = () => {
+    setPrompt('');
+    setHistory([]);
+    setThreadId(null);
+    setStoredThreadId(null);
   };
 
   return (
@@ -55,7 +138,7 @@ function ComparisonForm({
           ))}
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleFormSubmit}>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -75,7 +158,7 @@ function ComparisonForm({
             <button 
               className="clear-form"
               type="button"
-              onClick={clearForm}
+              onClick={handleClear}
               disabled={!prompt && selectedModels.length === 0 || isSubmitting}
             >
               Clear Form
