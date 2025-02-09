@@ -6,6 +6,10 @@ import ThreadedChat from './ThreadedChat';
 import ThreadHistoryPanel from './ThreadHistoryPanel';
 import './ThreadedComparison.css';
 
+// Import the storage helper
+const CURRENT_THREAD_KEY = 'currentThreadId';
+const getStoredThreadId = () => localStorage.getItem(CURRENT_THREAD_KEY);
+
 function ThreadedComparison({ currentPrompt, setCurrentPrompt }) {
   const [availableModels, setAvailableModels] = useState([]);
   const [selectedModels, setSelectedModels] = useState([]);
@@ -15,7 +19,7 @@ function ThreadedComparison({ currentPrompt, setCurrentPrompt }) {
   const [modelsLocked, setModelsLocked] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [modelsError, setModelsError] = useState(null);
-  const [threadId, setThreadId] = useState(null);
+  const [threadId, setThreadId] = useState(getStoredThreadId());
   const [showHistory, setShowHistory] = useState(false);
   const [threads, setThreads] = useState([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
@@ -23,6 +27,14 @@ function ThreadedComparison({ currentPrompt, setCurrentPrompt }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [chatLayout, setChatLayout] = useState('stacked');
   const [isFullWidth, setIsFullWidth] = useState(false);
+
+  // Load thread history on mount if there's a stored thread ID
+  useEffect(() => {
+    const storedThreadId = getStoredThreadId();
+    if (storedThreadId) {
+      loadThread(storedThreadId);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -166,6 +178,7 @@ function ThreadedComparison({ currentPrompt, setCurrentPrompt }) {
       setPrompt('');
       setThreadId(null);
       setSelectedModels([]);
+      localStorage.removeItem(CURRENT_THREAD_KEY); // Clear stored thread ID
     } else if (!modelsLocked) {
       setPrompt('');
       setSelectedModels([]);

@@ -16,11 +16,11 @@
 .api-header h3 {
   margin: 0;
   font-size: 1.1em;
-  color: #333;
+  color: var(--text-color);
 }
 
 .add-api-button {
-  background-color: #1976d2;
+  background-color: var(--primary-color);
   color: white;
   border: none;
   border-radius: 4px;
@@ -173,7 +173,7 @@
 
 .help-icon {
   background: none;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-color);
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -182,15 +182,15 @@
   justify-content: center;
   cursor: pointer;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   transition: all 0.2s;
   padding: 0;
 }
 
 .help-icon:hover {
-  background-color: #e9ecef;
-  color: #333;
-  border-color: #ced4da;
+  background-color: var(--hover-color);
+  color: var(--text-color);
+  border-color: var(--primary-color);
 }
 
 .help-icon.small {
@@ -216,10 +216,11 @@
   position: relative;
   width: 90%;
   max-width: 500px;
-  background-color: white;
+  background-color: var(--card-bg);
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--shadow-color);
+  border: 1px solid var(--border-color);
 }
 
 .modal-close {
@@ -229,7 +230,7 @@
   background: none;
   border: none;
   font-size: 24px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
   width: 24px;
@@ -241,20 +242,20 @@
 }
 
 .modal-close:hover {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: var(--hover-color);
+  color: var(--text-color);
 }
 
 .api-modal h4 {
   margin: 0 0 16px 0;
-  color: #333;
+  color: var(--text-color);
   font-size: 18px;
 }
 
 .api-modal p {
   margin: 0 0 12px 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -265,7 +266,7 @@
 
 .api-modal li {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
   line-height: 1.4;
 }
@@ -279,27 +280,27 @@
 
 .provider-button {
   background: none;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-color);
   padding: 12px;
   text-align: left;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
+  color: var(--text-color);
   transition: all 0.2s;
 }
 
 .provider-button:hover {
-  background-color: #f8f9fa;
-  border-color: #1976d2;
-  color: #1976d2;
+  background-color: var(--hover-color);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .provider-link {
   display: inline-block;
   margin-top: 8px;
   padding: 8px 16px;
-  background-color: #1976d2;
+  background-color: var(--primary-color);
   color: white;
   text-decoration: none;
   border-radius: 4px;
@@ -308,7 +309,7 @@
 }
 
 .provider-link:hover {
-  background-color: #1565c0;
+  background-color: var(--primary-color-dark);
   text-decoration: none;
 }
 
