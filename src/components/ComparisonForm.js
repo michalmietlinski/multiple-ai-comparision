@@ -64,14 +64,14 @@ function ComparisonForm({
         threadId: threadId,
         previousMessages: history
       };
-      console.log('Sending request to /api/thread-chat:', requestData);
+      console.log('Sending request to /api/threads/thread-chat:', requestData);
       
-      response = await fetch('http://localhost:3001/api/thread-chat', {
+      response = await fetch('http://localhost:3001/api/threads/thread-chat', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(requestData)
       });
 
       data = await response.json();

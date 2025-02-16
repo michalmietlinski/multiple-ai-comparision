@@ -41,6 +41,30 @@ function ThreadedChat({
     URL.revokeObjectURL(url);
   };
 
+  const formatNumber = (num) => {
+    return new Intl.NumberFormat().format(num);
+  };
+
+  const renderTokenUsage = (usage) => {
+    if (!usage) return null;
+    return (
+      <div className="token-usage">
+        <div className="token-stat">
+          <span className="token-label">Prompt:</span>
+          <span className="token-value">{formatNumber(usage.prompt_tokens)}</span>
+        </div>
+        <div className="token-stat">
+          <span className="token-label">Response:</span>
+          <span className="token-value">{formatNumber(usage.completion_tokens)}</span>
+        </div>
+        <div className="token-stat">
+          <span className="token-label">Total:</span>
+          <span className="token-value">{formatNumber(usage.total_tokens)}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`threaded-chat ${layout} ${fullWidth ? 'full-width' : ''}`}>
       {messages.length > 0 && (
@@ -67,6 +91,7 @@ function ThreadedChat({
                 <div key={rIndex} className="message assistant">
                   <div className="model-name">{response.model}</div>
                   <div className="message-content">{response.content}</div>
+                  {response.usage && renderTokenUsage(response.usage)}
                 </div>
               ))}
             </div>

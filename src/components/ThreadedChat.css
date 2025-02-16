@@ -101,6 +101,31 @@
   word-wrap: break-word;
 }
 
+.token-usage {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.85em;
+  color: var(--text-secondary);
+}
+
+.token-stat {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.token-label {
+  font-weight: 500;
+}
+
+.token-value {
+  font-family: monospace;
+}
+
 .responses {
   display: flex;
   flex-direction: column;

@@ -132,9 +132,15 @@ function ThreadedComparison({ currentPrompt, setCurrentPrompt }) {
         setLoading(prev => ({ ...prev, [model]: true }));
       });
 
-      if (data.responses && data.history) {
-        // Use the complete history from the server response
-        setMessages(data.history);
+      const response = await axios.post('http://localhost:3001/api/threads/thread-chat', {
+        threadId,
+        prompt,
+        models: selectedModels,
+        previousMessages: messages
+      });
+
+      if (response.data.responses && response.data.history) {
+        setMessages(response.data.history);
         setPrompt('');
         fetchThreads();
       }

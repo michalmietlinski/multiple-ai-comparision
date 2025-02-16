@@ -116,22 +116,24 @@ router.post('/thread-chat', async (req, res) => {
             });
             
             response = completion.choices[0].message.content;
-            break;
+            const usage = completion.usage || null;
+            
+            responses.push({
+              model: modelId,
+              response,
+              usage
+            });
             
           default:
             throw new Error(`Unsupported provider: ${api.provider}`);
         }
         
-        responses.push({
-          model: modelId,
-          response
-        });
-        
       } catch (error) {
         console.error(`Error with model ${modelId}:`, error);
         responses.push({
           model: modelId,
-          response: `Error: ${error.message}`
+          response: `Error: ${error.message}`,
+          usage: null
         });
       }
     }
