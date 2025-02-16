@@ -45,6 +45,24 @@ function ThreadedChat({
     return new Intl.NumberFormat().format(num);
   };
 
+  const calculateTotalTokens = () => {
+    let total = {
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0
+    };
+
+    messages.forEach(msg => {
+      if (msg.usage) {
+        total.prompt_tokens += msg.usage.prompt_tokens;
+        total.completion_tokens += msg.usage.completion_tokens;
+        total.total_tokens += msg.usage.total_tokens;
+      }
+    });
+
+    return total;
+  };
+
   const renderTokenUsage = (usage) => {
     if (!usage) return null;
     return (
@@ -65,11 +83,22 @@ function ThreadedChat({
     );
   };
 
+  const totalTokens = calculateTotalTokens();
+
   return (
     <div className={`threaded-chat ${layout} ${fullWidth ? 'full-width' : ''}`}>
       {messages.length > 0 && (
         <div className="chat-header">
-          <h3>Conversation</h3>
+          <div className="header-content">
+            <h3>Conversation</h3>
+            {totalTokens.total_tokens > 0 && (
+              <div className="conversation-tokens">
+                Total Tokens: {formatNumber(totalTokens.total_tokens)} 
+                (Prompt: {formatNumber(totalTokens.prompt_tokens)}, 
+                Response: {formatNumber(totalTokens.completion_tokens)})
+              </div>
+            )}
+          </div>
           <button 
             className="export-thread"
             onClick={handleExportThread}

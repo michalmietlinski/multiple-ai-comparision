@@ -34,7 +34,7 @@ function ComparisonForm({
   setHistory = () => {}
 }) {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [threadId, setThreadId] = useState(getStoredThreadId());
+  const threadId = getStoredThreadId();
 
   const handleSaveClick = () => {
     setShowSaveDialog(true);
@@ -82,7 +82,6 @@ function ComparisonForm({
       }
       
       if (data.threadId) {
-        setThreadId(data.threadId);
         setStoredThreadId(data.threadId);
       }
 
@@ -92,7 +91,6 @@ function ComparisonForm({
 
       if (data.responses) {
         handleSubmit(data);
-        setPrompt('');
       } else {
         throw new Error('No responses received from server');
       }
@@ -108,10 +106,7 @@ function ComparisonForm({
 
   // Clear thread when starting new conversation
   const handleClear = () => {
-    setPrompt('');
-    setHistory([]);
-    setThreadId(null);
-    setStoredThreadId(null);
+    clearForm();
   };
 
   return (

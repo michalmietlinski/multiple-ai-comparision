@@ -267,13 +267,14 @@ export const saveThreadChat = async (threadId, prompt, models, responses, previo
     threadHistory.push({ role: 'user', content: prompt });
   }
 
-  responses.forEach(({ model, response }) => {
+  responses.forEach(({ model, response, usage }) => {
     if (!response.startsWith('Error:')) {
       console.log('Adding new response from model:', model);
       threadHistory.push({ 
         role: 'assistant', 
         model,
-        content: response 
+        content: response,
+        usage 
       });
     }
   });

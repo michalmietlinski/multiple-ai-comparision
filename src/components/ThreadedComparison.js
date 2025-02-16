@@ -132,15 +132,8 @@ function ThreadedComparison({ currentPrompt, setCurrentPrompt }) {
         setLoading(prev => ({ ...prev, [model]: true }));
       });
 
-      const response = await axios.post('http://localhost:3001/api/threads/thread-chat', {
-        threadId,
-        prompt,
-        models: selectedModels,
-        previousMessages: messages
-      });
-
-      if (response.data.responses && response.data.history) {
-        setMessages(response.data.history);
+      if (data.responses && data.history) {
+        setMessages(data.history);
         setPrompt('');
         fetchThreads();
       }
@@ -185,9 +178,15 @@ function ThreadedComparison({ currentPrompt, setCurrentPrompt }) {
       setThreadId(null);
       setSelectedModels([]);
       localStorage.removeItem(CURRENT_THREAD_KEY); // Clear stored thread ID
+      // Reset loading states
+      setLoading({});
+      // Clear thread history panel
+      setShowHistory(false);
     } else if (!modelsLocked) {
       setPrompt('');
       setSelectedModels([]);
+      setThreadId(null);
+      localStorage.removeItem(CURRENT_THREAD_KEY);
     }
   };
 

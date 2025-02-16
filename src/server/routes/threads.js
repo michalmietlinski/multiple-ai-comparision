@@ -123,6 +123,7 @@ router.post('/thread-chat', async (req, res) => {
               response,
               usage
             });
+            break;
             
           default:
             throw new Error(`Unsupported provider: ${api.provider}`);

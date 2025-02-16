@@ -26,6 +26,18 @@
   border-radius: 8px;
 }
 
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conversation-tokens {
+  font-size: 0.85em;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
 .chat-header h3 {
   margin: 0;
   color: var(--text-color);
