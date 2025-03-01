@@ -1,43 +1,84 @@
 import React, { JSX } from 'react';
-import { ThreadedChatProps } from '../types/components.types';
-import { Message, TokenUsage } from '../types/chat.types';
-import { getModelDisplayName } from '../config/modelConfig';
 import './ThreadedChat.css';
+import { getModelDisplayName } from '../config/modelConfig';
 
-interface GroupedMessage {
-  question: Message;
-  responses: Message[];
+// Updated type definitions to match backend
+interface ChatUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
 }
 
-const renderTokenUsage = (usage: TokenUsage): JSX.Element => (
+interface BaseMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  model?: string;
+  timestamp: string;
+  usage?: ChatUsage | null;
+}
+
+interface ThreadMessage {
+  userMessage: BaseMessage;
+  responses: BaseMessage[];
+  timestamp: string;
+  usage?: ChatUsage | null;
+}
+
+// Updated props interface
+interface ThreadedChatProps {
+  messages: ThreadMessage[];
+  selectedModels: string[];
+  loading: Record<string, boolean>;
+  layout?: 'stacked' | 'grid';
+  fullWidth?: boolean;
+}
+
+const renderTokenUsage = (usage: ChatUsage): JSX.Element => (
   <div className="token-usage">
     <span>Tokens: {usage.total_tokens}</span>
     <span>(Prompt: {usage.prompt_tokens}, Response: {usage.completion_tokens})</span>
   </div>
 );
 
-const MessageContent = ({ message }: { message: Message }) => {
+const MessageContent = ({ message }: { message: BaseMessage }) => {
+  if (!message) {
+    return <div className="message-content error">Invalid message data</div>;
+  }
+
   if (message.role === 'user') {
-    return <div className="message-content">{message.content}</div>;
+    return <div className="message-content">{message.content || ''}</div>;
   }
 
   try {
-    const response = JSON.parse(message.content);
+    // Try to parse as JSON first (for backward compatibility)
+    let displayContent = message.content || '';
+    let usage = message.usage;
+    
+    try {
+      if (typeof message.content === 'string') {
+        const parsed = JSON.parse(message.content);
+        if (parsed && parsed.response) {
+          displayContent = parsed.response;
+          if (parsed.usage) {
+            usage = parsed.usage;
+          }
+        }
+      }
+    } catch (e) {
+      // Not JSON, use as is
+    }
+    
     return (
       <div className="message-content assistant-message">
         <div className="response-metadata">
           <div className="model-info">{getModelDisplayName(message.model || '')}</div>
-          {response.usage && (
-            <div className="usage-info">
-              <span>Tokens: {response.usage.total_tokens}</span>
-            </div>
-          )}
+          
         </div>
-        <div className="response-text">{response.response}</div>
+        <div className="response-text">{displayContent}</div>
       </div>
     );
   } catch (e) {
-    return <div className="message-content error">{message.content}</div>;
+    return <div className="message-content error">{message.content || 'Error displaying message'}</div>;
   }
 };
 
@@ -48,55 +89,40 @@ const ThreadedChat: React.FC<ThreadedChatProps> = ({
   layout = 'stacked',
   fullWidth = false
 }) => {
-  const groupedMessages: GroupedMessage[] = [];
-  for (let i = 0; i < messages.length; i++) {
-    if (messages[i].role === 'user') {
-      const responses = messages
-        .slice(i + 1, i + 1 + selectedModels.length)
-        .filter(m => m.role === 'assistant');
-      groupedMessages.push({
-        question: messages[i],
-        responses
-      });
-      i += selectedModels.length;
-    }
-  }
+  // Group messages by conversation turn
+  const groupedMessages = Array.isArray(messages) ? messages.map((message) => ({
+    question: message?.userMessage || null,
+    responses: message?.responses || []
+  })) : [];
 
-  const handleExportThread = (): void => {
-    const exportData = {
-      messages,
-      models: selectedModels,
-      timestamp: new Date().toISOString()
-    };
-
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `conversation-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const formatNumber = (num: number): string => {
-    return new Intl.NumberFormat().format(num);
-  };
-
-  const calculateTotalTokens = (): TokenUsage => {
-    const total: TokenUsage = {
+  const calculateTotalTokens = () => {
+    const total = {
       prompt_tokens: 0,
       completion_tokens: 0,
       total_tokens: 0
     };
 
+    if (!messages || !Array.isArray(messages)) {
+      return total;
+    }
+
     messages.forEach(msg => {
-      if (msg.usage) {
-        total.prompt_tokens += msg.usage.prompt_tokens;
-        total.completion_tokens += msg.usage.completion_tokens;
-        total.total_tokens += msg.usage.total_tokens;
+      // Add user message usage if available
+      if (msg && msg.userMessage && msg.userMessage.usage) {
+        total.prompt_tokens += msg.userMessage.usage.prompt_tokens || 0;
+        total.completion_tokens += msg.userMessage.usage.completion_tokens || 0;
+        total.total_tokens += msg.userMessage.usage.total_tokens || 0;
+      }
+      
+      // Add all response usages
+      if (msg && msg.responses && Array.isArray(msg.responses)) {
+        msg.responses.forEach((response: BaseMessage) => {
+          if (response && response.usage) {
+            total.prompt_tokens += response.usage.prompt_tokens || 0;
+            total.completion_tokens += response.usage.completion_tokens || 0;
+            total.total_tokens += response.usage.total_tokens || 0;
+          }
+        });
       }
     });
 
@@ -106,61 +132,45 @@ const ThreadedChat: React.FC<ThreadedChatProps> = ({
   const totalTokens = calculateTotalTokens();
 
   return (
-    <div className={`threaded-chat ${layout} ${fullWidth ? 'full-width' : ''}`}>
-      {messages.length > 0 && (
-        <div className="chat-header">
-          <div className="header-content">
-            <h3>Conversation</h3>
-            {totalTokens.total_tokens > 0 && (
-              <div className="conversation-tokens">
-                Total Tokens: {formatNumber(totalTokens.total_tokens)} 
-                (Prompt: {formatNumber(totalTokens.prompt_tokens)}, 
-                Response: {formatNumber(totalTokens.completion_tokens)})
+    <div className={`threaded-chat ${fullWidth ? 'full-width' : ''}`}>
+      <div className="token-summary">
+        Total tokens: {totalTokens.total_tokens} (Prompt: {totalTokens.prompt_tokens}, Response: {totalTokens.completion_tokens})
+      </div>
+      
+      <div className="chat-messages">
+        {groupedMessages.reverse().map((group, groupIndex) => (
+          <div key={`group-${groupIndex}`} className="conversation-turn">
+            {group.question && (
+              <div className="message user">
+                <div className="message-header">
+                  <div className="message-role">User</div>
+                  <div className="message-timestamp">
+                    {group.question.timestamp ? new Date(group.question.timestamp).toLocaleString() : ''}
+                  </div>
+                </div>
+                <MessageContent message={group.question} />
               </div>
             )}
-          </div>
-          <button 
-            className="export-thread"
-            onClick={handleExportThread}
-            title="Export entire conversation"
-          >
-            Export Conversation
-          </button>
-        </div>
-      )}
-      <div className="chat-messages">
-        {[...groupedMessages].reverse().map((group, index) => (
-          <div key={index} className="conversation-turn">
-            <div className="message user">
-              <div className="message-content">
-                {typeof group.question.content === 'object' 
-                  ? JSON.stringify(group.question.content) 
-                  : group.question.content}
-              </div>
-              {group.question.usage && renderTokenUsage(group.question.usage)}
-            </div>
             
-            <div className={`responses ${layout}`}>
-              {group.responses.map((response, rIndex) => (
-                <div key={rIndex} className="message assistant">
-                  <div className="model-name">{response.model}</div>
-                  <div className="message-content">
-                    {typeof response.content === 'object' 
-                      ? JSON.stringify(response.content) 
-                      : response.content}
+            {Array.isArray(group.responses) && group.responses.length > 0 && (
+              <div className={`responses ${layout}`}>
+                {group.responses.map((response: BaseMessage, responseIndex: number) => (
+                  <div 
+                    key={`response-${groupIndex}-${responseIndex}`} 
+                    className={`message assistant ${response && response.model && loading[response.model] ? 'loading' : ''}`}
+                  >
+                    
+                    {response && response.model && loading[response.model] ? (
+                      <div className="loading-indicator">Generating response...</div>
+                    ) : (
+                      <MessageContent message={response} />
+                    )}
+                    
+                    {response && response.usage && renderTokenUsage(response.usage)}
                   </div>
-                  {response.usage && renderTokenUsage(response.usage)}
-                </div>
-              ))}
-              {Object.entries(loading).map(([model, isLoading]) => 
-                isLoading && (
-                  <div key={model} className="message assistant loading">
-                    <div className="model-name">{model}</div>
-                    <div className="loading-indicator">Loading...</div>
-                  </div>
-                )
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>

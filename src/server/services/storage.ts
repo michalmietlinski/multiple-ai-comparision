@@ -2,7 +2,8 @@ import { promises as fsPromises } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { DIRECTORIES } from '../config/directories.js';
-import { Thread, ThreadMessage } from '../types/threads.types.js';
+import { Thread } from '../types/threads.types.js';
+import { ThreadMessage } from 'server/types/api.types.js';
 
 export class StorageService {
   private static instance: StorageService;
@@ -78,7 +79,7 @@ export class StorageService {
 
   async saveMessage(threadId: string, message: ThreadMessage): Promise<Thread> {
     try {
-      if (!message.role || !message.content || !message.timestamp) {
+      if (!message.userMessage.role || !message.userMessage.content || !message.timestamp) {
         console.error('Invalid message data:', message);
         throw new Error('Invalid message data structure');
       }

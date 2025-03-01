@@ -1,4 +1,4 @@
-import { ThreadMessage as BaseThreadMessage } from './api.types.js';
+import { ThreadMessage } from './api.types.js';
 
 export interface Thread {
   id: string;
@@ -8,8 +8,6 @@ export interface Thread {
   createdAt: string;
   updatedAt: string;
 }
-
-export type ThreadMessage = BaseThreadMessage;
 
 export interface ThreadsListResponse {
   threads: Thread[];

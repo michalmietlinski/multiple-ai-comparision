@@ -15,6 +15,17 @@
   max-width: none;
 }
 
+.token-summary {
+  padding: 10px;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
 .chat-header {
   display: flex;
   justify-content: space-between;
@@ -98,10 +109,26 @@
   margin-right: 20%;
 }
 
-.model-name {
-  font-size: 0.8em;
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9em;
   color: var(--text-secondary);
-  margin-bottom: 4px;
+}
+
+.message-role {
+  font-weight: bold;
+}
+
+.message-timestamp {
+  font-size: 0.85em;
+}
+
+.model-name {
+  font-size: 0.9em;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -166,14 +193,28 @@
 }
 
 .responses.grid .message.assistant {
+  margin-right: 0;
   min-width: 0; /* Allow shrinking */
 }
 
 /* Add responsive behavior */
 @media (max-width: 768px) {
   .responses.grid {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
+  
+  .message.user,
+  .message.assistant {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+.loading-indicator {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 .chat-input {
@@ -245,7 +286,7 @@
 }
 
 .error {
-  background-color: var(--error-bg);
-  color: var(--error-color);
-  border: 1px solid var(--error-border);
+  background-color: var(--error-bg, #ffebee);
+  color: var(--error-color, #d32f2f);
+  border: 1px solid var(--error-border, #ffcdd2);
 } 

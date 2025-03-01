@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { StorageService } from "../services/storage.js";
 import { OpenAIService } from "../services/openai.js";
-import { ErrorResponse } from "../types/api.types.js";
+import { baseMessage, ErrorResponse, ThreadMessage } from "../types/api.types.js";
 import {
   ThreadsListResponse,
   ThreadChatRequest,
@@ -10,8 +10,10 @@ import {
   ThreadParams,
   ThreadSuccessResponse,
   ThreadState,
+  ChatUsage
 } from "../types/threads.types.js";
 import { TypedRequest } from "../types/api.types.js";
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions.js";
 
 const router = express.Router();
 const storage = StorageService.getInstance();
@@ -41,7 +43,7 @@ router.get(
   }
 );
 
-// Create/update thread chat
+// TODO: Refactor to simplify the code and make it more readable
 router.post(
   "/thread-chat",
   async (
@@ -91,39 +93,102 @@ router.post(
       }
 
       // Convert thread messages to OpenAI format
-      const messageHistory = thread.messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      const messageHistory: ChatCompletionMessageParam[] = [];
+      
+      // Iterate through messages and add to history
+      (thread.messages || []).forEach((msg: ThreadMessage) => {
+        messageHistory.push({
+          role: msg.userMessage.role as any, // Type assertion to avoid role type issues
+          content: msg.userMessage.content,
+        });
+        
+        msg.responses.forEach((response) => {
+          messageHistory.push({
+            role: response.role as any, // Type assertion to avoid role type issues
+            content: response.content,
+          });
+        });
+      });
 
       console.log(
         `[${new Date().toISOString()}] ThreadsRoute: Sending message to OpenAI with history`,
         {
           historyLength: messageHistory.length,
+          modelCount: models.length
         }
       );
 
-      // Send message and get response
-      const { content: response, usage } = await openai.sendMessage(
-        prompt,
-        models[0],
-        messageHistory
-      );
-
-      // Save user message
+      // Process all models and collect responses
+      const modelResponses: {
+        model: string;
+        response: string;
+        usage: ChatUsage | null;
+      }[] = [];
+      
+      const assistantResponses = [];
+      let combinedContent = "";
       const timestamp = new Date().toISOString();
-      await storage.saveMessage(thread.id, {
-        role: "user",
-        content: prompt,
-        timestamp,
-      });
+	  
+      for (const model of models) {
+        try {
+          console.log(`[${new Date().toISOString()}] ThreadsRoute: Processing model ${model}`);
+          const { content: response, usage } = await openai.sendMessage(
+            prompt,
+            model,
+            messageHistory
+          );
+          
+          // Add to modelResponses for API response
+          modelResponses.push({
+            model,
+            response,
+            usage,
+          });
+          
+          // Add to assistantResponses for storage
+          assistantResponses.push({
+            role: "assistant" as "user" | "assistant" | "system",
+            model,
+            content: response,
+            usage,
+            timestamp,
+          });
+          
+          // Add model response to combined content
+          combinedContent += `\n\n### ${model} Response:\n${response}`;
+        } catch (error) {
+          console.error(`[${new Date().toISOString()}] ERROR ThreadsRoute: Failed to process model ${model}`, error);
+          
+          const errorMsg = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
+          
+          // Add to modelResponses for API response
+          modelResponses.push({
+            model,
+            response: errorMsg,
+            usage: null,
+          });
+          
+          // Add to assistantResponses for storage
+          assistantResponses.push({
+            role: "assistant" as "user" | "assistant" | "system",
+            model,
+            content: errorMsg,
+            usage: null,
+            timestamp,
+          });
+        }
+      }
 
-      // Save assistant response
+      // Save assistant response with combined content from all models
       thread = await storage.saveMessage(thread.id, {
-        role: "assistant",
-        content: response,
+        userMessage: {
+          role: "user",
+          content: prompt,
+          timestamp: timestamp,
+        },
+        responses: assistantResponses,
         timestamp,
-        usage,
+        usage: modelResponses[0]?.usage || null, // Use first model's usage as a fallback
       });
 
       // Update thread models if needed
@@ -135,13 +200,7 @@ router.post(
 
       const responseData = {
         threadId: thread.id,
-        responses: [
-          {
-            model: models[0],
-            response,
-            usage,
-          },
-        ],
+        responses: modelResponses,
         history: thread.messages,
       };
 
@@ -149,6 +208,7 @@ router.post(
         `[${new Date().toISOString()}] ThreadsRoute: Sending response`,
         {
           threadId: responseData.threadId,
+          responseCount: responseData.responses.length,
           historyLength: responseData.history.length,
         }
       );

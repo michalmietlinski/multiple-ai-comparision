@@ -17,10 +17,16 @@ export interface ApiProvider {
   active: boolean;
   models?: string[];
 }
-
-export interface ThreadMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
+export interface baseMessage {
+	role: 'user' | 'assistant' | 'system';
+	content: string;
+	model?: string;
+	timestamp: string;
+	usage?: ChatUsage | null;
+}
+ export interface ThreadMessage {
+  userMessage: baseMessage;
+  responses: baseMessage[],
   model?: string;
   timestamp: string;
   usage?: ChatUsage | null;

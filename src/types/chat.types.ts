@@ -30,8 +30,20 @@ export interface ThreadHistory {
   prompt?: string;
 }
 
-export interface ThreadMessage extends Message {
-  
+// New message structure
+export interface BaseMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  model?: string;
+  timestamp: string;
+  usage?: TokenUsage | null;
+}
+
+export interface ThreadMessage {
+  userMessage: BaseMessage;
+  responses: BaseMessage[];
+  timestamp: string;
+  usage?: TokenUsage | null;
 }
 
 export interface ThreadState {
@@ -41,4 +53,8 @@ export interface ThreadState {
   updatedAt: string;
   createdAt: string;
   messages: ThreadMessage[];
+}
+
+export interface ThreadStateWithCombinedMessages extends ThreadState {
+  combinedMessages?: ThreadMessage[];
 }

@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { ThreadMessage, ThreadState, Message } from '../types/chat.types';
 import { v4 as uuidv4 } from 'uuid';
+import { ThreadState, ThreadMessage } from '../types/chat.types';
 
 const API_BASE = 'http://localhost:3001/api';
 
@@ -12,8 +12,8 @@ export class ThreadService {
       const threadId = uuidv4();
       const timestamp = new Date().toISOString();
       
-      // Just create initial frontend state
-      const thread: ThreadState = {
+      // Create initial thread state
+      const newThread: ThreadState = {
         id: threadId,
         models,
         isActive: true,
@@ -22,8 +22,8 @@ export class ThreadService {
         updatedAt: timestamp
       };
 
-      console.log('[ThreadService] Thread state prepared:', threadId);
-      return thread;
+      console.log('[ThreadService] Thread created:', threadId);
+      return newThread;
     } catch (error) {
       console.error('[ThreadService] Error creating thread:', error);
       throw new Error('Failed to create thread');
@@ -32,11 +32,6 @@ export class ThreadService {
 
   static async sendMessage(threadId: string, content: string, models: string[]): Promise<ThreadMessage[]> {
     try {
-      console.log('[ThreadService] Sending message:', {
-        threadId,
-        contentLength: content.length,
-        models
-      });
 
       // Send message - backend handles thread state and history
       const chatResponse = await axios.post(`${API_BASE}/threads/thread-chat`, {
@@ -44,8 +39,23 @@ export class ThreadService {
         prompt: content,
         models
       });
-
-      console.log('[ThreadService] Message sent and thread updated');
+      
+      // Make sure we have a valid history array
+      if (!chatResponse.data.history || !Array.isArray(chatResponse.data.history)) {
+        console.error('[ThreadService] Invalid history in response:', chatResponse.data);
+        return [];
+      }
+      
+      // Log the first message to help with debugging
+      if (chatResponse.data.history.length > 0) {
+        const firstMessage = chatResponse.data.history[0];
+        
+        // Log the first response if available
+        if (firstMessage.responses && firstMessage.responses.length > 0) {
+          const firstResponse = firstMessage.responses[0];
+        }
+      }
+      
       return chatResponse.data.history;
     } catch (error) {
       console.error('[ThreadService] Error sending message:', error);
@@ -56,10 +66,6 @@ export class ThreadService {
   static async getThread(threadId: string): Promise<ThreadState> {
     try {
       const response = await axios.get(`${API_BASE}/threads/${threadId}`);
-      console.log('[ThreadService] Thread retrieved:', {
-        threadId: response.data.id,
-        messagesCount: response.data.messages.length
-      });
       return response.data;
     } catch (error) {
       console.error('[ThreadService] Error fetching thread:', error);
@@ -104,4 +110,38 @@ export class ThreadService {
       throw new Error('Failed to clear threads');
     }
   }
+
+  // Helper method to get messages for a specific model
+  static getMessagesForModel(thread: ThreadState, modelId: string): { role: string; content: string }[] {
+    if (!thread || !thread.messages || !Array.isArray(thread.messages)) {
+      return [];
+    }
+    
+    const actualModelId = getActualModelId(modelId);
+    
+    // Convert the new message structure to the format expected by OpenAI
+    return thread.messages.flatMap(msg => {
+      const messages = [];
+      
+      // Add user message
+      messages.push({
+        role: msg.userMessage.role,
+        content: msg.userMessage.content
+      });
+      
+      // Add responses for the specified model
+      const modelResponses = msg.responses
+        .filter(response => !response.model || response.model === actualModelId)
+        .map(response => ({
+          role: response.role,
+          content: response.content
+        }));
+      
+      return [...messages, ...modelResponses];
+    });
+  }
+}
+
+function getActualModelId(modelName: string): string {
+  return modelName.split(' ')[0].toLowerCase();
 } 

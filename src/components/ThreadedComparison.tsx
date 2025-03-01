@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from 'uuid';
 import ComparisonForm from './ComparisonForm';
 import ThreadedChat from './ThreadedChat';
 import ThreadHistoryPanel from './ThreadHistoryPanel';
-import { Message, ThreadHistory, ThreadState, ThreadMessage } from '../types/chat.types';
 import { Model } from '../types/api.types';
 import { getModelDisplayName } from '../config/modelConfig';
 import { ThreadService } from '../services/threadService';
@@ -28,12 +27,43 @@ declare module 'uuid' {
   export function v4(): string;
 }
 
+// Updated type definitions to match backend
+interface ChatUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
+interface BaseMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  model?: string;
+  timestamp: string;
+  usage?: ChatUsage | null;
+}
+
+interface ThreadMessage {
+  userMessage: BaseMessage;
+  responses: BaseMessage[];
+  timestamp: string;
+  usage?: ChatUsage | null;
+}
+
+interface ThreadState {
+  id: string;
+  models: string[];
+  isActive: boolean;
+  messages: ThreadMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, setCurrentPrompt }) => {
   const [availableModels, setAvailableModels] = useState<Model[]>([]);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [modelsLocked, setModelsLocked] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [modelsError, setModelsError] = useState<string | null>(null);
@@ -193,6 +223,7 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
         setModelsLocked(true);
       }
 
+      // Set loading state for all selected models
       selectedModels.forEach(model => {
         setLoading(prev => ({ ...prev, [model]: true }));
       });
@@ -204,9 +235,21 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
         selectedModels
       );
       
+      console.log('[ThreadedComparison] Received messages:', newMessages.length);
+      
+      // Update messages state with the new messages
       setMessages(newMessages);
       setPrompt('');
+      
+      // Refresh thread list to show updated thread
+      await fetchThreads();
+      
+      // Also reload the current thread to ensure we have the latest data
+      if (threadState && threadState.id) {
+        await loadThread(threadState.id);
+      }
 
+      // Reset loading state for all selected models
       selectedModels.forEach(model => {
         setLoading(prev => ({ ...prev, [model]: false }));
       });

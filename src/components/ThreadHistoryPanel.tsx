@@ -1,5 +1,5 @@
 import React from 'react';
-import { ThreadState } from '../types/chat.types';
+import { ThreadState, ThreadMessage } from '../types/chat.types';
 import './ThreadHistoryPanel.css';
 
 interface ThreadHistoryPanelProps {
@@ -27,11 +27,11 @@ const ThreadHistoryPanel: React.FC<ThreadHistoryPanelProps> = ({
     return new Date(timestamp).toLocaleString();
   };
 
-  const getFirstUserMessage = (messages: any[]): string => {
-    if (!Array.isArray(messages)) return 'No prompt';
-    const firstUserMessage = messages.find(m => m.role === 'user');
-    if (!firstUserMessage) return 'No prompt';
-    return firstUserMessage.content;
+  const getFirstUserMessage = (messages: ThreadMessage[]): string => {
+    if (!Array.isArray(messages) || messages.length === 0) return 'No prompt';
+    const firstMessage = messages[0];
+    if (!firstMessage || !firstMessage.userMessage) return 'No prompt';
+    return firstMessage.userMessage.content;
   };
 
   const truncateText = (text: string, maxLength = 100): string => {
@@ -51,68 +51,55 @@ const ThreadHistoryPanel: React.FC<ThreadHistoryPanelProps> = ({
       >
         {showHistory ? 'Hide History' : 'Show History'}
       </button>
-
+      
       {showHistory && (
         <div className="history-panel">
           <div className="history-header">
             <h3>Thread History</h3>
-            {safeThreads.length > 0 && (
-              <button
-                className="clear-history"
-                onClick={clearAllThreads}
-              >
-                Clear All
-              </button>
-            )}
+            <button 
+              className="clear-all-button"
+              onClick={clearAllThreads}
+              disabled={safeThreads.length === 0}
+            >
+              Clear All
+            </button>
           </div>
-
+          
           {threadsLoading ? (
-            <div className="loading">Loading threads...</div>
+            <div className="loading-threads">Loading threads...</div>
           ) : safeThreads.length === 0 ? (
-            <div className="no-threads">No saved threads</div>
+            <div className="no-threads">No threads found</div>
           ) : (
-            <div className="thread-list">
+            <ul className="thread-list">
               {safeThreads.map((thread) => (
-                <div key={thread.id} className="thread-item">
+                <li key={thread.id} className="thread-item">
                   <div className="thread-info">
-                    <div className="thread-prompt">
-                      {truncateText(getFirstUserMessage(thread.messages || []))}
-                    </div>
-                    <div className="thread-metadata">
-                      <span className="thread-date">
-                        {formatDate(thread.updatedAt || new Date().toISOString())}
-                      </span>
-                      <span className={`thread-status ${thread.isActive ? 'active' : 'inactive'}`}>
-                        {thread.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
+                    <div className="thread-date">{formatDate(thread.updatedAt || thread.createdAt)}</div>
                     <div className="thread-models">
-                      Models: {Array.isArray(thread.models) ? thread.models.map(model => model.split('/').pop()).join(', ') : 'None'}
+                      Models: {thread.models.join(', ')}
                     </div>
-                    <div className="message-count">
-                      Messages: {Array.isArray(thread.messages) ? thread.messages.length : 0}
+                    <div className="thread-prompt">
+                      {truncateText(getFirstUserMessage(thread.messages))}
                     </div>
                   </div>
                   <div className="thread-actions">
                     <button
-                      onClick={() => loadThread(thread.id)}
                       className="load-thread"
-                      title="Load this thread"
+                      onClick={() => loadThread(thread.id)}
                     >
                       Load
                     </button>
                     <button
+                      className="delete-thread"
                       onClick={() => deleteThread(thread.id)}
-                      className={`delete-thread ${deletingThreads[thread.id] ? 'deleting' : ''}`}
                       disabled={deletingThreads[thread.id]}
-                      title="Delete this thread"
                     >
                       {deletingThreads[thread.id] ? 'Deleting...' : 'Delete'}
                     </button>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       )}

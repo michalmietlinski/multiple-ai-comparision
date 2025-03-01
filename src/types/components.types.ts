@@ -1,9 +1,9 @@
 import { FormEvent } from 'react';
-import { Message, ThreadHistory } from './chat.types';
+import { Message, ThreadHistory, ThreadState, ThreadMessage } from './chat.types';
 import { Model } from './api.types';
 
 export interface ThreadedChatProps {
-  messages: Message[];
+  messages: ThreadMessage[];
   selectedModels: string[];
   loading: Record<string, boolean>;
   layout?: 'stacked' | 'grid';
@@ -23,16 +23,16 @@ export interface ComparisonFormProps {
   isSubmitting: boolean;
   setIsSubmitting: (value: boolean) => void;
   modelsLocked: boolean;
-  history: Message[];
-  setHistory: (history: Message[]) => void;
+  history: ThreadMessage[];
+  setHistory: (history: ThreadMessage[]) => void;
 }
 
 export interface ThreadHistoryPanelProps {
   showHistory: boolean;
   setShowHistory: (show: boolean) => void;
-  threads: ThreadHistory[];
+  threads: ThreadState[];
   threadsLoading: boolean;
-  loadThread: (thread: ThreadHistory) => void;
+  loadThread: (threadId: string) => Promise<void>;
   deleteThread: (threadId: string) => Promise<void>;
   clearAllThreads: () => Promise<void>;
   deletingThreads: Record<string, boolean>;
