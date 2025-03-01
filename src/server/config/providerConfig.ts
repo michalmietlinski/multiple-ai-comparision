@@ -10,7 +10,7 @@ interface ProviderConfigs {
 export const DEFAULT_PROVIDER_CONFIGS: ProviderConfigs = {
   openai: {
     url: 'https://api.openai.com/v1',
-    models: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo-preview']
+    models: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo-0125']
   },
   deepseek: {
     url: 'https://api.deepseek.com/v1',

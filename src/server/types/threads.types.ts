@@ -62,15 +62,13 @@ export interface ThreadSuccessResponse {
 }
 
 export interface ThreadState {
-  mapping: {
-    localThreadId: string;
-    openAIThreadId: string | null;
-    models: string[];
-    isActive: boolean;
-    lastUpdated: string;
-  };
-  messages: ThreadMessage[];
-}
+	id: string;
+	models: string[];
+	isActive: boolean;
+	updatedAt: string;
+	createdAt: string;
+	messages: ThreadMessage[];
+  }
 
 export interface Message {
   role: 'user' | 'assistant' | 'system';

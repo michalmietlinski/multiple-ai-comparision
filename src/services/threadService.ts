@@ -1,98 +1,86 @@
 import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
-import { ThreadMapping, ThreadMessage, ThreadState, Message } from '../types/chat.types';
+import { ThreadMessage, ThreadState, Message } from '../types/chat.types';
 
 const API_BASE = 'http://localhost:3001/api';
 
-interface OpenAIThreadResponse {
-  threadId: string;
-  messages: Message[];
-}
-
 export class ThreadService {
-  static async createThread(models: string[]): Promise<ThreadState> {
-    try {
-      // Create OpenAI thread first
-      const openAIResponse = await axios.post<OpenAIThreadResponse>(`${API_BASE}/openai/thread`);
+  static async createThread(models: string[]): Promise<any> { //Promise<ThreadState> {
+    // try {
+    //   console.log('[ThreadService] Creating thread with models:', models);
       
-      const mapping: ThreadMapping = {
-        localThreadId: uuidv4(),
-        openAIThreadId: openAIResponse.data.threadId,
-        models,
-        isActive: true,
-        lastUpdated: new Date().toISOString()
-      };
+    //   // First create a thread via thread-chat to get initial threadId
+    //   const chatResponse = await axios.post(`${API_BASE}/threads/thread-chat`, {
+    //     models,
+    //     prompt: '',
+    //     threadId: null,
+    //     previousMessages: []
+    //   });
 
-      // Create local thread with OpenAI mapping
-      const response = await axios.post(`${API_BASE}/thread/create`, {
-        mapping,
-        messages: []
-      });
+    //   // Create thread mapping
+    //   const mapping = {
+    //     localThreadId: chatResponse.data.threadId,
+    //     models,
+    //     isActive: true,
+    //     lastUpdated: new Date().toISOString()
+    //   };
 
-      return response.data;
-    } catch (error) {
-      console.error('Error creating thread:', error);
-      throw new Error('Failed to create thread with OpenAI');
-    }
-  }
+    //   // Save thread state
+    //   const threadResponse = await axios.post(`${API_BASE}/threads`, {
+    //     mapping,
+    //     messages: chatResponse.data.history || []
+    //   });
 
-  static async getThread(localThreadId: string): Promise<ThreadState> {
-    try {
-      const response = await axios.get(`${API_BASE}/threads/${localThreadId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching thread:', error);
-      throw new Error('Failed to fetch thread');
-    }
+    //   console.log('[ThreadService] Thread created:', threadResponse.data.id);
+    //   return threadResponse.data;
+    // } catch (error) {
+    //   console.error('[ThreadService] Error creating thread:', error);
+    //   throw new Error('Failed to create thread');
+    // }
   }
 
   static async sendMessage(threadId: string, content: string): Promise<ThreadMessage[]> {
     try {
-      // Get thread first to ensure we have OpenAI thread ID
-      const thread = await this.getThread(threadId);
-      
-      // If this is the first message, just save it locally without sending to OpenAI
-      if (!thread.mapping.openAIThreadId && thread.messages.length === 0) {
-        const response = await axios.post(`${API_BASE}/thread/${threadId}/message`, {
-          content,
-          openAIThreadId: null
-        });
-        return response.data;
-      }
-
-      // For second message or later, ensure we have OpenAI thread ID
-      if (!thread.mapping.openAIThreadId) {
-        throw new Error('No OpenAI thread ID found');
-      }
-
-      // Send message to OpenAI thread
-      const response = await axios.post(`${API_BASE}/thread/${threadId}/message`, {
-        content,
-        openAIThreadId: thread.mapping.openAIThreadId
+      console.log('[ThreadService] Sending message:', {
+        threadId,
+        contentLength: content.length
       });
 
-      return response.data;
+      // Get current thread state
+      const thread = await this.getThread(threadId);
+
+      // Send message via chat endpoint
+      const chatResponse = await axios.post(`${API_BASE}/threads/thread-chat`, {
+        threadId,
+        prompt: content,
+        models: thread.models,
+        previousMessages: thread.messages
+      });
+
+      // Update thread state with new messages
+      await axios.post(`${API_BASE}/threads/${threadId}`, {
+        messages: chatResponse.data.history,
+        models: thread.models
+      });
+
+      console.log('[ThreadService] Message sent and thread updated');
+      return chatResponse.data.history;
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('[ThreadService] Error sending message:', error);
       throw new Error('Failed to send message');
     }
   }
 
-  static async deleteThread(threadId: string): Promise<void> {
+  static async getThread(threadId: string): Promise<ThreadState> {
     try {
-      // Get thread first to ensure we have OpenAI thread ID
-      const thread = await this.getThread(threadId);
-      
-      if (thread.mapping.openAIThreadId) {
-        // Delete OpenAI thread first
-        await axios.delete(`${API_BASE}/openai/thread/${thread.mapping.openAIThreadId}`);
-      }
-
-      // Delete local thread
-      await axios.delete(`${API_BASE}/thread/${threadId}`);
+      const response = await axios.get(`${API_BASE}/threads/${threadId}`);
+      console.log('[ThreadService] Thread retrieved:', {
+        threadId: response.data.id,
+        messagesCount: response.data.messages.length
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error deleting thread:', error);
-      throw new Error('Failed to delete thread');
+      console.error('[ThreadService] Error fetching thread:', error);
+      throw new Error('Failed to fetch thread');
     }
   }
 
@@ -101,45 +89,37 @@ export class ThreadService {
       const response = await axios.get(`${API_BASE}/threads`);
       const threads = response.data.threads || [];
       
-      // Filter out invalid thread data
-      return threads.filter((thread: any) => 
+      const validThreads = threads.filter((thread: any) => 
         thread && 
-        thread.mapping && 
-        thread.mapping.localThreadId &&
+        thread.id &&
         thread.messages &&
         Array.isArray(thread.messages)
       );
+      return validThreads;
     } catch (error) {
-      console.error('Error listing threads:', error);
+      console.error('[ThreadService] Error listing threads:', error);
       throw new Error('Failed to list threads');
     }
   }
 
-  static async updateThread(threadId: string, updates: Partial<ThreadMapping>): Promise<ThreadState> {
+  static async deleteThread(threadId: string): Promise<void> {
     try {
-      const response = await axios.patch(`${API_BASE}/thread/${threadId}`, updates);
-      return response.data;
+      console.log('[ThreadService] Deleting thread:', threadId);
+      await axios.delete(`${API_BASE}/threads/${threadId}`);
+      console.log('[ThreadService] Thread deleted successfully');
     } catch (error) {
-      console.error('Error updating thread:', error);
-      throw new Error('Failed to update thread');
+      console.error('[ThreadService] Error deleting thread:', error);
+      throw new Error('Failed to delete thread');
     }
   }
 
   static async clearAllThreads(): Promise<void> {
     try {
-      const threads = await this.listThreads();
-      
-      // Delete all OpenAI threads first
-      await Promise.all(
-        threads
-          .filter(t => t.mapping.openAIThreadId)
-          .map(t => axios.delete(`${API_BASE}/openai/thread/${t.mapping.openAIThreadId}`))
-      );
-
-      // Delete all local threads
+      console.log('[ThreadService] Clearing all threads...');
       await axios.delete(`${API_BASE}/threads`);
+      console.log('[ThreadService] All threads cleared successfully');
     } catch (error) {
-      console.error('Error clearing threads:', error);
+      console.error('[ThreadService] Error clearing threads:', error);
       throw new Error('Failed to clear threads');
     }
   }

@@ -97,7 +97,7 @@ export const getThreadHistory = async (threadId: string): Promise<{ messages: Th
     const fileExists = await fsPromises.access(filePath)
       .then(() => true)
       .catch(() => false);
-
+	console.log('fileExists', fileExists);
     if (!fileExists) {
       // Initialize with empty thread structure
       const thread: Thread = {

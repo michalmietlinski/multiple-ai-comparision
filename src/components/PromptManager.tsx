@@ -315,7 +315,7 @@ const PromptManager: React.FC<PromptManagerProps> = ({ onLoadPrompt }) => {
                       Load
                     </button>
                     <button
-                      onClick={() => deletePrompt(prompt.filename)}
+                      onClick={() => deletePrompt(prompt.id)}
                       className={`delete-prompt ${deletingThreads[prompt.id] ? 'deleting' : ''}`}
                       disabled={deletingThreads[prompt.id]}
                       title="Delete this prompt"

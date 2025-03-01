@@ -5,7 +5,7 @@ export interface TokenUsage {
 }
 
 export interface Message {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   model?: string;
   usage?: TokenUsage;
@@ -30,21 +30,15 @@ export interface ThreadHistory {
   prompt?: string;
 }
 
-export interface ThreadMapping {
-  localThreadId: string;
-  openAIThreadId: string | null;
-  models: string[];
-  isActive: boolean;
-  lastUpdated: string;
-}
-
 export interface ThreadMessage extends Message {
-  localThreadId: string;
-  messageId: string;
-  openAIMessageId?: string;
+  
 }
 
 export interface ThreadState {
-  mapping: ThreadMapping;
+  id: string;
+  models: string[];
+  isActive: boolean;
+  updatedAt: string;
+  createdAt: string;
   messages: ThreadMessage[];
-} 
+}

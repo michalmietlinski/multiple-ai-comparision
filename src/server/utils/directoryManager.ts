@@ -36,7 +36,7 @@ interface Changelog {
 
 export const DIRECTORIES: Directories = {
   LOGS: path.join(ROOT_DIR, 'logs'),
-  THREAD_LOGS: path.join(ROOT_DIR, 'thread_logs'),
+  THREAD_LOGS: path.join(ROOT_DIR, 'data', 'threads'),
   CONFIG: path.join(ROOT_DIR, 'config'),
   DATA: path.join(ROOT_DIR, 'data'),
   PROMPTS: path.join(ROOT_DIR, 'prompts'),
@@ -93,6 +93,7 @@ export async function initializeDirectories(): Promise<void> {
     fsPromises.mkdir(DIRECTORIES.PROMPTS, { recursive: true }),
     fsPromises.mkdir(DIRECTORIES.COLLECTIONS, { recursive: true })
   ]);
+
 
   // Ensure apis.json exists
   try {

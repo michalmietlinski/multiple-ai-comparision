@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import ComparisonForm from './ComparisonForm';
@@ -9,6 +10,8 @@ import { Model } from '../types/api.types';
 import { getModelDisplayName } from '../config/modelConfig';
 import { ThreadService } from '../services/threadService';
 import './ThreadedComparison.css';
+
+const API_BASE = 'http://localhost:3001/api';
 
 interface ThreadedComparisonProps {
   currentPrompt: string;
@@ -42,6 +45,8 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
   const [chatLayout, setChatLayout] = useState<'stacked' | 'grid'>('stacked');
   const [isFullWidth, setIsFullWidth] = useState(false);
   const [currentThread, setCurrentThread] = useState<ThreadState | null>(null);
+  const needsThreadRefresh = useRef(false);
+
 
   // Get threadId from URL
   const getThreadIdFromUrl = () => {
@@ -72,93 +77,25 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
     try {
       setThreadsLoading(true);
       const response = await ThreadService.listThreads();
-      // Ensure we have a valid array of threads
       const validThreads = Array.isArray(response) ? response : [];
-      setThreads(validThreads);
+	  setThreads(validThreads);
+	  console.log('[ThreadedComparison] Threads fetched:', validThreads);
     } catch (error) {
-      console.error('Error fetching threads:', error);
+      console.error('[ThreadedComparison] Error fetching threads:', error);
       setThreads([]);
     } finally {
       setThreadsLoading(false);
     }
   }, []);
 
-  const loadThread = useCallback(async (threadId: string): Promise<void> => {
-    try {
-      setThreadsLoading(true);
-      const threadState = await ThreadService.getThread(threadId);
-      
-      if (!threadState || !threadState.messages.length) {
-        throw new Error('Invalid thread data received');
-      }
-
-      setCurrentThread(threadState);
-      setSelectedModels(threadState.mapping.models);
-      setMessages(threadState.messages);
-      setModelsLocked(true);
-      setShowHistory(false);
-      updateUrlWithThreadId(threadId);
-      
-    } catch (error: any) {
-      console.error('Error loading thread:', error);
-      if (error.response?.status === 404) {
-        setThreads(prev => prev.filter(t => t.mapping.localThreadId !== threadId));
-      }
-      alert('Failed to load thread. The thread may have been deleted or is invalid.');
-      clearForm();
-      await fetchThreads();
-    } finally {
-      setThreadsLoading(false);
-    }
-  }, [clearForm, fetchThreads]);
-
-  // Save thread whenever messages change
-  useEffect(() => {
-    const saveThread = async () => {
-      const threadId = getThreadIdFromUrl();
-      if (threadId && messages.length > 0) {
-        try {
-          await axios.post(`http://localhost:3001/api/threads/${threadId}`, {
-            messages,
-            models: selectedModels
-          });
-          fetchThreads(); // Refresh thread list after saving
-        } catch (error) {
-          console.error('Error saving thread:', error);
-        }
-      }
-    };
-    saveThread();
-  }, [messages, selectedModels]);
-
-  // Load thread on mount and URL change
-  useEffect(() => {
-    const handleUrlChange = async () => {
-      const threadId = getThreadIdFromUrl();
-      if (threadId) {
-        await loadThread(threadId);
-      } else {
-        clearForm();
-      }
-    };
-
-    // Initial load
-    handleUrlChange();
-
-    // Listen for popstate events (browser back/forward)
-    const handlePopState = (event: PopStateEvent) => {
-      handleUrlChange();
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [clearForm, loadThread]);
-
+  const formatModelName = (modelId: string): string => {
+    return getModelDisplayName(modelId);
+  };
   useEffect(() => {
     const fetchModels = async () => {
       try {
         setModelsLoading(true);
-        const response = await axios.get('http://localhost:3001/api/models');
+        const response = await axios.get(`${API_BASE}/models`);
         const models = response.data.map((model: ApiModel) => ({
           id: model.id,
           name: formatModelName(model.id)
@@ -175,6 +112,43 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
     fetchModels();
   }, []);
 
+  const loadThread = useCallback(async (threadId: string) => {
+    console.log(`Loading thread ${threadId}`);
+    try {
+      const thread = await ThreadService.getThread(threadId);
+      if (thread) {
+        console.log(`Thread loaded with ${thread.messages.length} messages and models:`, thread.mapping.models);
+        // Batch state updates
+        ReactDOM.unstable_batchedUpdates(() => {
+          setCurrentThread(thread);
+          setSelectedModels(thread.models);
+          setMessages(thread.messages);
+        });
+      }
+    } catch (error) {
+      console.error('Error loading thread:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleUrlChange = async () => {
+      const threadId = getThreadIdFromUrl();
+      if (threadId && currentThread?.id !== threadId) {
+        await loadThread(threadId);
+      } else {
+        clearForm();
+      }
+    };
+
+    handleUrlChange();
+    const handlePopState = (event: PopStateEvent) => {
+      handleUrlChange();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [clearForm, loadThread]);
+
   useEffect(() => {
     fetchThreads();
   }, []);
@@ -186,10 +160,6 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
     }
   }, [currentPrompt, setCurrentPrompt]);
 
-  const formatModelName = (modelId: string): string => {
-    return getModelDisplayName(modelId);
-  };
-
   const handleModelToggle = (modelId: string): void => {
     if (!modelsLocked) {
       setSelectedModels(prev => 
@@ -200,52 +170,92 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
     }
   };
 
+//   // Save thread whenever messages change
+//   useEffect(() => {
+//     const saveThread = async () => {
+//       const threadId = getThreadIdFromUrl();
+//       if (threadId && messages.length > 0) {
+//         try {
+//           console.log('[ThreadedComparison] Saving thread:', {
+//             threadId,
+//             messagesCount: messages.length,
+//             models: selectedModels
+//           });
+//           await axios.post(`${API_BASE}/threads/${threadId}`, {
+//             messages,
+//             models: selectedModels
+//           });
+//           console.log('[ThreadedComparison] Thread saved successfully');
+//           needsThreadRefresh.current = true;
+//         } catch (error) {
+//           console.error('[ThreadedComparison] Error saving thread:', error);
+//         }
+//       }
+//     };
+//     saveThread();
+//   }, [messages, selectedModels]);
+
+  // Separate effect for thread refresh
+//   useEffect(() => {
+//     const refreshThreads = async () => {
+//       if (needsThreadRefresh.current) {
+//         const threadId = getThreadIdFromUrl();
+//         if (!threadId) return;
+        
+//         const threadExists = threads.some(t => t.id === threadId);
+//         if (!threadExists) {
+//           await fetchThreads();
+//         }
+//         needsThreadRefresh.current = false;
+//       }
+//     };
+//     refreshThreads();
+//   }, [threads]);
+
+  // Load thread on mount and URL change
+  
+
+  
+
+  
+
   const handleSubmit = async (data: { responses: Record<string, string> }): Promise<void> => {
     try {
-      let threadState = currentThread;
-      
-      // Create local thread on first message
-      if (!threadState) {
-        // For first message, just create a local thread without OpenAI
-        const localThreadId = uuidv4();
-        threadState = {
-          mapping: {
-            localThreadId,
-            openAIThreadId: null,
-            models: selectedModels,
-            isActive: true,
-            lastUpdated: new Date().toISOString()
-          },
-          messages: []
-        };
-        setCurrentThread(threadState);
-        updateUrlWithThreadId(threadState.mapping.localThreadId);
-        setModelsLocked(true);
-      }
-
-      // Create OpenAI thread on second message if it doesn't exist
-      if (threadState.messages.length > 0 && !threadState.mapping.openAIThreadId) {
-        threadState = await ThreadService.createThread(selectedModels);
-        setCurrentThread(threadState);
-        updateUrlWithThreadId(threadState.mapping.localThreadId);
-      }
-
-      selectedModels.forEach(model => {
-        setLoading(prev => ({ ...prev, [model]: true }));
+      console.log('[ThreadedComparison] Handling submit:', {
+        hasCurrentThread: !!currentThread,
+        selectedModels,
+        promptLength: prompt.length
       });
 
-      if (data.responses) {
-        const newMessages = await ThreadService.sendMessage(
-          threadState.mapping.localThreadId,
-          prompt
-        );
+      let threadState = currentThread;
+      // Create local thread on first message
+    //   if (!threadState) {
+    //     console.log('[ThreadedComparison] Creating new thread...');
+    //     threadState = await ThreadService.createThread(selectedModels);
+    //     console.log('[ThreadedComparison] New thread created:', threadState.id);
+    //     setCurrentThread(threadState);
+    //     updateUrlWithThreadId(threadState.id);
+    //     setModelsLocked(true);
+    // //   }
 
-        setMessages(newMessages);
-        setPrompt('');
-        await fetchThreads();
-      }
+    //   selectedModels.forEach(model => {
+    //     setLoading(prev => ({ ...prev, [model]: true }));
+    //   });
+
+    //   if (data.responses) {
+    //     console.log('[ThreadedComparison] Sending message to thread:', threadState.id);
+    //     const newMessages = await ThreadService.sendMessage(
+    //       threadState.id,
+    //       prompt
+    //     );
+
+    //     console.log('[ThreadedComparison] Message sent, received responses:', newMessages.length);
+    //     setMessages(newMessages);
+    //     setPrompt('');
+    //     needsThreadRefresh.current = true;
+     // }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('[ThreadedComparison] Error in handleSubmit:', error);
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
     } finally {
       selectedModels.forEach(model => {
@@ -259,9 +269,9 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
       setDeletingThreads(prev => ({ ...prev, [threadId]: true }));
       
       await ThreadService.deleteThread(threadId);
-      setThreads(prev => prev.filter(t => t.mapping.localThreadId !== threadId));
+      setThreads(prev => prev.filter(t => t.id !== threadId));
       
-      if (currentThread?.mapping.localThreadId === threadId) {
+      if (currentThread?.id === threadId) {
         setCurrentThread(null);
         clearForm();
       }
@@ -270,7 +280,7 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
     } catch (error: any) {
       console.error('Error deleting thread:', error);
       if (error.response?.status === 404) {
-        setThreads(prev => prev.filter(t => t.mapping.localThreadId !== threadId));
+        setThreads(prev => prev.filter(t => t.id !== threadId));
       } else {
         alert('Failed to delete thread. Please try again.');
         await fetchThreads();

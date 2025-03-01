@@ -40,7 +40,7 @@ const ThreadHistoryPanel: React.FC<ThreadHistoryPanelProps> = ({
   };
 
   const safeThreads = Array.isArray(threads) 
-    ? threads.filter(thread => thread && thread.mapping && thread.mapping.localThreadId)
+    ? threads.filter(thread => thread && thread.id)
     : [];
 
   return (
@@ -73,26 +73,21 @@ const ThreadHistoryPanel: React.FC<ThreadHistoryPanelProps> = ({
           ) : (
             <div className="thread-list">
               {safeThreads.map((thread) => (
-                <div key={thread.mapping.localThreadId} className="thread-item">
+                <div key={thread.id} className="thread-item">
                   <div className="thread-info">
                     <div className="thread-prompt">
                       {truncateText(getFirstUserMessage(thread.messages || []))}
                     </div>
                     <div className="thread-metadata">
                       <span className="thread-date">
-                        {formatDate(thread.mapping.lastUpdated || new Date().toISOString())}
+                        {formatDate(thread.lastUpdated || new Date().toISOString())}
                       </span>
-                      <span className={`thread-status ${thread.mapping.isActive ? 'active' : 'inactive'}`}>
-                        {thread.mapping.isActive ? 'Active' : 'Inactive'}
+                      <span className={`thread-status ${thread.isActive ? 'active' : 'inactive'}`}>
+                        {thread.isActive ? 'Active' : 'Inactive'}
                       </span>
-                      {thread.mapping.openAIThreadId && (
-                        <span className="openai-thread" title={`OpenAI Thread ID: ${thread.mapping.openAIThreadId}`}>
-                          🔗
-                        </span>
-                      )}
                     </div>
                     <div className="thread-models">
-                      Models: {Array.isArray(thread.mapping.models) ? thread.mapping.models.map(model => model.split('/').pop()).join(', ') : 'None'}
+                      Models: {Array.isArray(thread.models) ? thread.models.map(model => model.split('/').pop()).join(', ') : 'None'}
                     </div>
                     <div className="message-count">
                       Messages: {Array.isArray(thread.messages) ? thread.messages.length : 0}
@@ -100,19 +95,19 @@ const ThreadHistoryPanel: React.FC<ThreadHistoryPanelProps> = ({
                   </div>
                   <div className="thread-actions">
                     <button
-                      onClick={() => loadThread(thread.mapping.localThreadId)}
+                      onClick={() => loadThread(thread.id)}
                       className="load-thread"
                       title="Load this thread"
                     >
                       Load
                     </button>
                     <button
-                      onClick={() => deleteThread(thread.mapping.localThreadId)}
-                      className={`delete-thread ${deletingThreads[thread.mapping.localThreadId] ? 'deleting' : ''}`}
-                      disabled={deletingThreads[thread.mapping.localThreadId]}
+                      onClick={() => deleteThread(thread.id)}
+                      className={`delete-thread ${deletingThreads[thread.id] ? 'deleting' : ''}`}
+                      disabled={deletingThreads[thread.id]}
                       title="Delete this thread"
                     >
-                      {deletingThreads[thread.mapping.localThreadId] ? 'Deleting...' : 'Delete'}
+                      {deletingThreads[thread.id] ? 'Deleting...' : 'Delete'}
                     </button>
                   </div>
                 </div>
