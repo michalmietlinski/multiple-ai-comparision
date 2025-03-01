@@ -45,7 +45,6 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
   const [chatLayout, setChatLayout] = useState<'stacked' | 'grid'>('stacked');
   const [isFullWidth, setIsFullWidth] = useState(false);
   const [currentThread, setCurrentThread] = useState<ThreadState | null>(null);
-  const needsThreadRefresh = useRef(false);
 
 
   // Get threadId from URL
@@ -70,6 +69,7 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
     setSelectedModels([]);
     setMessages([]);
     setModelsLocked(false);
+    setCurrentThread(null);
     updateUrlWithThreadId(null);
   }, []);
 
@@ -123,7 +123,8 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
           setCurrentThread(thread);
           setSelectedModels(thread.models);
           setMessages(thread.messages);
-		  updateUrlWithThreadId(thread.id);
+          setModelsLocked(true);
+          updateUrlWithThreadId(thread.id);
         });
       }
     } catch (error) {
@@ -171,55 +172,6 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
     }
   };
 
-//   // Save thread whenever messages change
-//   useEffect(() => {
-//     const saveThread = async () => {
-//       const threadId = getThreadIdFromUrl();
-//       if (threadId && messages.length > 0) {
-//         try {
-//           console.log('[ThreadedComparison] Saving thread:', {
-//             threadId,
-//             messagesCount: messages.length,
-//             models: selectedModels
-//           });
-//           await axios.post(`${API_BASE}/threads/${threadId}`, {
-//             messages,
-//             models: selectedModels
-//           });
-//           console.log('[ThreadedComparison] Thread saved successfully');
-//           needsThreadRefresh.current = true;
-//         } catch (error) {
-//           console.error('[ThreadedComparison] Error saving thread:', error);
-//         }
-//       }
-//     };
-//     saveThread();
-//   }, [messages, selectedModels]);
-
-  // Separate effect for thread refresh
-//   useEffect(() => {
-//     const refreshThreads = async () => {
-//       if (needsThreadRefresh.current) {
-//         const threadId = getThreadIdFromUrl();
-//         if (!threadId) return;
-        
-//         const threadExists = threads.some(t => t.id === threadId);
-//         if (!threadExists) {
-//           await fetchThreads();
-//         }
-//         needsThreadRefresh.current = false;
-//       }
-//     };
-//     refreshThreads();
-//   }, [threads]);
-
-  // Load thread on mount and URL change
-  
-
-  
-
-  
-
   const handleSubmit = async (): Promise<void> => {
     try {
       console.log('[ThreadedComparison] Handling submit:', {
@@ -231,8 +183,8 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
       let threadState = currentThread;
       console.log('[ThreadedComparison] Current thread:', threadState);
       
-      // Create local thread on first message if needed
-      if (!threadState) {
+      // Always create new thread if no current thread or after form clear
+      if (!threadState || !threadState.id) {
         console.log('[ThreadedComparison] Creating new thread...');
         threadState = await ThreadService.createThread(selectedModels);
         console.log('[ThreadedComparison] New thread created:', threadState.id);
@@ -254,7 +206,6 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
       
       setMessages(newMessages);
       setPrompt('');
-      needsThreadRefresh.current = true;
 
       selectedModels.forEach(model => {
         setLoading(prev => ({ ...prev, [model]: false }));
