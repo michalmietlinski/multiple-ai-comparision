@@ -106,6 +106,9 @@
 }
 
 .message-content {
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 0.5rem 0;
   color: var(--text-color);
   line-height: 1.5;
   font-size: 0.95em;
@@ -205,4 +208,44 @@
 .chat-input button:disabled {
   background-color: var(--text-secondary);
   cursor: not-allowed;
+}
+
+.assistant-message {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  padding: 0;
+}
+
+.response-metadata {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: var(--input-bg);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 8px 8px 0 0;
+}
+
+.model-info {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.response-text {
+  padding: 1rem;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.usage-info {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.error {
+  background-color: var(--error-bg);
+  color: var(--error-color);
+  border: 1px solid var(--error-border);
 } 

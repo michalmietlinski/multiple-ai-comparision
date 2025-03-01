@@ -1,0 +1,36 @@
+{
+  "id": "3b05f84f-ad02-440f-9d23-907c5a0c36da",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is capital of Poland?",
+      "timestamp": "2025-02-28T23:53:51.154Z"
+    },
+    {
+      "role": "assistant",
+      "content": "The capital of Poland is Warsaw.",
+      "model": "gpt-4",
+      "timestamp": "2025-02-28T23:53:51.154Z",
+      "usage": {
+        "prompt_tokens": 13,
+        "completion_tokens": 8,
+        "total_tokens": 21,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  ],
+  "models": [
+    "gpt-4"
+  ],
+  "createdAt": "2025-02-28T23:53:51.154Z",
+  "updatedAt": "2025-02-28T23:53:51.154Z"
+}

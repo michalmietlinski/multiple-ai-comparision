@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "rootDir": "src/server",
+    "baseUrl": "src/server",
+    "paths": {
+      "*": ["*"]
+    }
+  },
+  "include": ["src/server/**/*"],
+  "exclude": ["node_modules", "src/client"]
+} 
