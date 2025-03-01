@@ -80,7 +80,7 @@ const ThreadHistoryPanel: React.FC<ThreadHistoryPanelProps> = ({
                     </div>
                     <div className="thread-metadata">
                       <span className="thread-date">
-                        {formatDate(thread.lastUpdated || new Date().toISOString())}
+                        {formatDate(thread.updatedAt || new Date().toISOString())}
                       </span>
                       <span className={`thread-status ${thread.isActive ? 'active' : 'inactive'}`}>
                         {thread.isActive ? 'Active' : 'Inactive'}

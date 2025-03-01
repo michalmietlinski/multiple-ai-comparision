@@ -117,12 +117,13 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
     try {
       const thread = await ThreadService.getThread(threadId);
       if (thread) {
-        console.log(`Thread loaded with ${thread.messages.length} messages and models:`, thread.mapping.models);
+        console.log(`Thread loaded with ${thread.messages.length} messages and models:`, thread.models);
         // Batch state updates
         ReactDOM.unstable_batchedUpdates(() => {
           setCurrentThread(thread);
           setSelectedModels(thread.models);
           setMessages(thread.messages);
+		  updateUrlWithThreadId(thread.id);
         });
       }
     } catch (error) {
@@ -219,7 +220,7 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
 
   
 
-  const handleSubmit = async (data: { responses: Record<string, string> }): Promise<void> => {
+  const handleSubmit = async (): Promise<void> => {
     try {
       console.log('[ThreadedComparison] Handling submit:', {
         hasCurrentThread: !!currentThread,
@@ -228,36 +229,38 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
       });
 
       let threadState = currentThread;
-      // Create local thread on first message
-    //   if (!threadState) {
-    //     console.log('[ThreadedComparison] Creating new thread...');
-    //     threadState = await ThreadService.createThread(selectedModels);
-    //     console.log('[ThreadedComparison] New thread created:', threadState.id);
-    //     setCurrentThread(threadState);
-    //     updateUrlWithThreadId(threadState.id);
-    //     setModelsLocked(true);
-    // //   }
+      console.log('[ThreadedComparison] Current thread:', threadState);
+      
+      // Create local thread on first message if needed
+      if (!threadState) {
+        console.log('[ThreadedComparison] Creating new thread...');
+        threadState = await ThreadService.createThread(selectedModels);
+        console.log('[ThreadedComparison] New thread created:', threadState.id);
+        setCurrentThread(threadState);
+        updateUrlWithThreadId(threadState.id);
+        setModelsLocked(true);
+      }
 
-    //   selectedModels.forEach(model => {
-    //     setLoading(prev => ({ ...prev, [model]: true }));
-    //   });
+      selectedModels.forEach(model => {
+        setLoading(prev => ({ ...prev, [model]: true }));
+      });
 
-    //   if (data.responses) {
-    //     console.log('[ThreadedComparison] Sending message to thread:', threadState.id);
-    //     const newMessages = await ThreadService.sendMessage(
-    //       threadState.id,
-    //       prompt
-    //     );
+      console.log('[ThreadedComparison] Sending message to thread:', threadState.id);
+      const newMessages = await ThreadService.sendMessage(
+        threadState.id,
+        prompt,
+        selectedModels
+      );
+      
+      setMessages(newMessages);
+      setPrompt('');
+      needsThreadRefresh.current = true;
 
-    //     console.log('[ThreadedComparison] Message sent, received responses:', newMessages.length);
-    //     setMessages(newMessages);
-    //     setPrompt('');
-    //     needsThreadRefresh.current = true;
-     // }
+      selectedModels.forEach(model => {
+        setLoading(prev => ({ ...prev, [model]: false }));
+      });
     } catch (error) {
       console.error('[ThreadedComparison] Error in handleSubmit:', error);
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
-    } finally {
       selectedModels.forEach(model => {
         setLoading(prev => ({ ...prev, [model]: false }));
       });

@@ -1,65 +1,48 @@
 import axios from 'axios';
 import { ThreadMessage, ThreadState, Message } from '../types/chat.types';
+import { v4 as uuidv4 } from 'uuid';
 
 const API_BASE = 'http://localhost:3001/api';
 
 export class ThreadService {
-  static async createThread(models: string[]): Promise<any> { //Promise<ThreadState> {
-    // try {
-    //   console.log('[ThreadService] Creating thread with models:', models);
+  static async createThread(models: string[]): Promise<ThreadState> {
+    try {
+      console.log('[ThreadService] Creating thread with models:', models);
       
-    //   // First create a thread via thread-chat to get initial threadId
-    //   const chatResponse = await axios.post(`${API_BASE}/threads/thread-chat`, {
-    //     models,
-    //     prompt: '',
-    //     threadId: null,
-    //     previousMessages: []
-    //   });
+      const threadId = uuidv4();
+      const timestamp = new Date().toISOString();
+      
+      // Just create initial frontend state
+      const thread: ThreadState = {
+        id: threadId,
+        models,
+        isActive: true,
+        messages: [],
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
 
-    //   // Create thread mapping
-    //   const mapping = {
-    //     localThreadId: chatResponse.data.threadId,
-    //     models,
-    //     isActive: true,
-    //     lastUpdated: new Date().toISOString()
-    //   };
-
-    //   // Save thread state
-    //   const threadResponse = await axios.post(`${API_BASE}/threads`, {
-    //     mapping,
-    //     messages: chatResponse.data.history || []
-    //   });
-
-    //   console.log('[ThreadService] Thread created:', threadResponse.data.id);
-    //   return threadResponse.data;
-    // } catch (error) {
-    //   console.error('[ThreadService] Error creating thread:', error);
-    //   throw new Error('Failed to create thread');
-    // }
+      console.log('[ThreadService] Thread state prepared:', threadId);
+      return thread;
+    } catch (error) {
+      console.error('[ThreadService] Error creating thread:', error);
+      throw new Error('Failed to create thread');
+    }
   }
 
-  static async sendMessage(threadId: string, content: string): Promise<ThreadMessage[]> {
+  static async sendMessage(threadId: string, content: string, models: string[]): Promise<ThreadMessage[]> {
     try {
       console.log('[ThreadService] Sending message:', {
         threadId,
-        contentLength: content.length
+        contentLength: content.length,
+        models
       });
 
-      // Get current thread state
-      const thread = await this.getThread(threadId);
-
-      // Send message via chat endpoint
+      // Send message - backend handles thread state and history
       const chatResponse = await axios.post(`${API_BASE}/threads/thread-chat`, {
         threadId,
         prompt: content,
-        models: thread.models,
-        previousMessages: thread.messages
-      });
-
-      // Update thread state with new messages
-      await axios.post(`${API_BASE}/threads/${threadId}`, {
-        messages: chatResponse.data.history,
-        models: thread.models
+        models
       });
 
       console.log('[ThreadService] Message sent and thread updated');
@@ -115,9 +98,7 @@ export class ThreadService {
 
   static async clearAllThreads(): Promise<void> {
     try {
-      console.log('[ThreadService] Clearing all threads...');
       await axios.delete(`${API_BASE}/threads`);
-      console.log('[ThreadService] All threads cleared successfully');
     } catch (error) {
       console.error('[ThreadService] Error clearing threads:', error);
       throw new Error('Failed to clear threads');

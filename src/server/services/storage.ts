@@ -18,6 +18,14 @@ export class StorageService {
 
   async saveThread(thread: Thread): Promise<void> {
     try {
+      // Validate thread before saving
+      if (!thread.id || !thread.messages || !Array.isArray(thread.messages) || 
+          !thread.models || !Array.isArray(thread.models) ||
+          !thread.createdAt || !thread.updatedAt) {
+        console.error('Invalid thread data:', thread);
+        throw new Error('Invalid thread data structure');
+      }
+
       const filePath = path.join(DIRECTORIES.THREAD_LOGS, `${thread.id}.json`);
       await fsPromises.writeFile(
         filePath,
@@ -25,7 +33,7 @@ export class StorageService {
       );
     } catch (error) {
       console.error('Error saving thread:', error);
-      throw new Error('Failed to save thread');
+      throw new Error(error instanceof Error ? error.message : 'Failed to save thread');
     }
   }
 
@@ -51,15 +59,30 @@ export class StorageService {
       }
 
       const data = await fsPromises.readFile(filePath, 'utf-8');
-      return JSON.parse(data) as Thread;
+      const thread = JSON.parse(data) as Thread;
+      
+      // Validate thread after reading
+      if (!thread.id || !thread.messages || !Array.isArray(thread.messages) || 
+          !thread.models || !Array.isArray(thread.models) ||
+          !thread.createdAt || !thread.updatedAt) {
+        console.error(`Invalid thread data in file ${threadId}.json:`, thread);
+        throw new Error('Invalid thread data structure');
+      }
+
+      return thread;
     } catch (error) {
       console.error('Error getting thread:', error);
-      throw new Error('Failed to get thread');
+      throw new Error(error instanceof Error ? error.message : 'Failed to get thread');
     }
   }
 
   async saveMessage(threadId: string, message: ThreadMessage): Promise<Thread> {
     try {
+      if (!message.role || !message.content || !message.timestamp) {
+        console.error('Invalid message data:', message);
+        throw new Error('Invalid message data structure');
+      }
+
       const thread = await this.getThread(threadId);
       thread.messages.push(message);
       thread.updatedAt = new Date().toISOString();
@@ -67,12 +90,16 @@ export class StorageService {
       return thread;
     } catch (error) {
       console.error('Error saving message:', error);
-      throw new Error('Failed to save message');
+      throw new Error(error instanceof Error ? error.message : 'Failed to save message');
     }
   }
 
   async updateThreadMapping(threadId: string, openAIThreadId: string): Promise<Thread> {
     try {
+      if (!threadId || typeof threadId !== 'string') {
+        throw new Error('Invalid threadId');
+      }
+
       const thread = await this.getThread(threadId);
       thread.openAIThreadId = openAIThreadId;
       thread.updatedAt = new Date().toISOString();
@@ -80,7 +107,7 @@ export class StorageService {
       return thread;
     } catch (error) {
       console.error('Error updating thread mapping:', error);
-      throw new Error('Failed to update thread mapping');
+      throw new Error(error instanceof Error ? error.message : 'Failed to update thread mapping');
     }
   }
 
@@ -96,9 +123,20 @@ export class StorageService {
           const filePath = path.join(DIRECTORIES.THREAD_LOGS, file);
           const data = await fsPromises.readFile(filePath, 'utf-8');
           const thread = JSON.parse(data) as Thread;
+          
+          // Validate required thread properties
+          if (!thread.id || !thread.messages || !Array.isArray(thread.messages) || 
+              !thread.models || !Array.isArray(thread.models) ||
+              !thread.createdAt || !thread.updatedAt) {
+            console.error(`Invalid thread data in file ${file}:`, thread);
+            continue;
+          }
+          
           threads.push(thread);
         } catch (error) {
           console.error(`Error reading thread file ${file}:`, error);
+          // Skip invalid files instead of breaking
+          continue;
         }
       }
 
@@ -118,6 +156,26 @@ export class StorageService {
     } catch (error) {
       console.error('Error deleting thread:', error);
       throw new Error('Failed to delete thread');
+    }
+  }
+
+  async deleteAllThreads(): Promise<void> {
+    try {
+      const files = await fsPromises.readdir(DIRECTORIES.THREAD_LOGS);
+      
+      for (const file of files) {
+        if (!file.endsWith('.json')) continue;
+        
+        try {
+          await fsPromises.unlink(path.join(DIRECTORIES.THREAD_LOGS, file));
+        } catch (error) {
+          console.error(`Error deleting thread file ${file}:`, error);
+          // Continue with other files even if one fails
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting all threads:', error);
+      throw new Error('Failed to delete all threads');
     }
   }
 } 

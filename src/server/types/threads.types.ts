@@ -11,11 +11,6 @@ export interface Thread {
 
 export type ThreadMessage = BaseThreadMessage;
 
-export interface ThreadHistoryResponse {
-  messages: ThreadMessage[];
-  threadId: string;
-}
-
 export interface ThreadsListResponse {
   threads: Thread[];
 }

@@ -1,15 +1,7 @@
 import React, { useState, FormEvent } from 'react';
 import SavePromptDialog from './SavePromptDialog';
 import { ComparisonFormProps } from '../types/components.types';
-import { Message } from '../types/chat.types';
 import './ComparisonForm.css';
-
-interface ThreadResponse {
-  threadId?: string;
-  history?: Message[];
-  responses?: Record<string, string>;
-  error?: string;
-}
 
 const ComparisonForm: React.FC<ComparisonFormProps> = ({ 
   prompt, 
@@ -47,41 +39,9 @@ const ComparisonForm: React.FC<ComparisonFormProps> = ({
     event.preventDefault();
     setError(null);
     
-    let response: Response;
-    let data: ThreadResponse | undefined;
     try {
       setIsSubmitting(true);
-      
-      const requestData = {
-        prompt,
-        models: selectedModels,
-        threadId: new URLSearchParams(window.location.search).get('threadId'),
-        previousMessages: history
-      };
-      
-      response = await fetch('http://localhost:3001/api/threads/thread-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
-
-      data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error || `Server error: ${response.status}`);
-      }
-
-      if (data?.history) {
-        setHistory(data.history);
-      }
-
-      if (data?.responses) {
-        handleSubmit({ responses: data.responses });
-      } else {
-        throw new Error('No responses received from server');
-      }
+      await handleSubmit();  // Just trigger the submit
     } catch (error) {
       console.error('Error submitting form:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';

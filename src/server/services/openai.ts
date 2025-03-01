@@ -6,7 +6,7 @@ import { ChatCompletionMessageParam } from 'openai/resources/chat/completions.js
 
 export class OpenAIService {
   private openai: OpenAI;
-  private static instance: OpenAIService;
+  private static instance: OpenAIService | null = null;
 
   private constructor() {
     console.log(`[${new Date().toISOString()}] 1. OpenAIService: Constructor called`);
@@ -14,31 +14,59 @@ export class OpenAIService {
   }
 
   static async getInstance(): Promise<OpenAIService> {
-    console.log(`[${new Date().toISOString()}] 2. OpenAIService: Getting instance`);
-    if (!OpenAIService.instance) {
-      OpenAIService.instance = new OpenAIService();
-      await OpenAIService.instance.init();
+    try {
+      console.log(`[${new Date().toISOString()}] 2. OpenAIService: Getting instance`);
+      if (!OpenAIService.instance) {
+        OpenAIService.instance = new OpenAIService();
+        try {
+          await OpenAIService.instance.init();
+        } catch (initError) {
+          OpenAIService.instance = null;
+          console.error(`[${new Date().toISOString()}] ERROR OpenAIService: Failed to initialize`, initError);
+          throw new Error(`OpenAI service initialization failed: ${initError instanceof Error ? initError.message : 'Unknown error'}`);
+        }
+      }
+      if (!OpenAIService.instance) {
+        throw new Error('Failed to create OpenAI service instance');
+      }
+      return OpenAIService.instance;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ERROR OpenAIService: getInstance failed`, error);
+      throw error;
     }
-    return OpenAIService.instance;
   }
 
   private async init() {
-    console.log(`[${new Date().toISOString()}] 3. OpenAIService: Initializing`);
-    const config = await getDefaultApiConfig();
-    const api = config.apis.find(a => 
-      a.provider === 'openai' && 
-      a.active
-    );
+    try {
+      console.log(`[${new Date().toISOString()}] 3. OpenAIService: Initializing`);
+      const config = await getDefaultApiConfig();
+      
+      if (!config || !config.apis) {
+        throw new Error('Invalid API configuration');
+      }
 
-    if (!api) {
-      throw new Error('No active OpenAI API configuration found');
+      const api = config.apis.find(a => 
+        a.provider === 'openai' && 
+        a.active
+      );
+
+      if (!api) {
+        throw new Error('No active OpenAI API configuration found');
+      }
+
+      if (!api.key) {
+        throw new Error('OpenAI API key is missing');
+      }
+
+      this.openai = new OpenAI({
+        apiKey: api.key,
+        baseURL: api.url || DEFAULT_PROVIDER_CONFIGS.openai.url
+      });
+      console.log(`[${new Date().toISOString()}] 4. OpenAIService: Initialized successfully`);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ERROR OpenAIService: Initialization failed`, error);
+      throw error;
     }
-
-    this.openai = new OpenAI({
-      apiKey: api.key,
-      baseURL: api.url || DEFAULT_PROVIDER_CONFIGS.openai.url
-    });
-    console.log(`[${new Date().toISOString()}] 4. OpenAIService: Initialized successfully`);
   }
 
   async sendMessage(content: string, model: string = 'gpt-4', previousMessages: ChatCompletionMessageParam[] = []): Promise<{

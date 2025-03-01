@@ -13,7 +13,7 @@ export interface ThreadedChatProps {
 export interface ComparisonFormProps {
   prompt: string;
   setPrompt: (prompt: string) => void;
-  handleSubmit: (data: { responses: Record<string, string> }) => void;
+  handleSubmit: () => Promise<void>;
   selectedModels: string[];
   availableModels: Model[];
   handleModelToggle: (modelId: string) => void;

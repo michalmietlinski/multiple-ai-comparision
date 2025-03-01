@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Moving up three levels to reach project root (from src/server/utils)
-const ROOT_DIR = path.join(__dirname, '..', '..', '..');
+const ROOT_DIR = process.cwd();
 
 interface Directories {
   LOGS: string;
@@ -83,43 +83,69 @@ const DEFAULT_CHANGELOG: Changelog = {
   ]
 };
 
-export async function initializeDirectories(): Promise<void> {
-  // Create base directories
-  await Promise.all([
-    fsPromises.mkdir(DIRECTORIES.LOGS, { recursive: true }),
-    fsPromises.mkdir(DIRECTORIES.THREAD_LOGS, { recursive: true }),
-    fsPromises.mkdir(DIRECTORIES.CONFIG, { recursive: true }),
-    fsPromises.mkdir(DIRECTORIES.DATA, { recursive: true }),
-    fsPromises.mkdir(DIRECTORIES.PROMPTS, { recursive: true }),
-    fsPromises.mkdir(DIRECTORIES.COLLECTIONS, { recursive: true })
-  ]);
-
-
-  // Ensure apis.json exists
+async function ensureDirectory(dir: string): Promise<void> {
   try {
-    await fsPromises.access(FILES.API_CONFIG);
+    await fsPromises.access(dir);
   } catch {
     try {
-      const examplePath = path.join(DIRECTORIES.CONFIG, 'apis.example.json');
-      await fsPromises.access(examplePath);
-      await fsPromises.copyFile(examplePath, FILES.API_CONFIG);
-      console.log('Created apis.json from example file');
-    } catch {
-      await fsPromises.writeFile(FILES.API_CONFIG, JSON.stringify({
-        apis: []
-      }, null, 2));
-      console.log('Created empty apis.json');
+      await fsPromises.mkdir(dir, { recursive: true });
+      console.log(`Created directory: ${dir}`);
+    } catch (error) {
+      console.error(`Failed to create directory ${dir}:`, error);
+      throw error;
     }
   }
+}
 
-  // Ensure changelog.json exists
+async function ensureFile(filePath: string, defaultContent: any, examplePath?: string): Promise<void> {
   try {
-    await fsPromises.access(FILES.CHANGELOG);
+    await fsPromises.access(filePath);
   } catch {
-    await fsPromises.writeFile(
-      FILES.CHANGELOG, 
-      JSON.stringify(DEFAULT_CHANGELOG, null, 2)
+    try {
+      if (examplePath) {
+        try {
+          await fsPromises.access(examplePath);
+          await fsPromises.copyFile(examplePath, filePath);
+          console.log(`Created ${path.basename(filePath)} from example file`);
+          return;
+        } catch (error) {
+          console.log(`Example file not found at ${examplePath}, creating with default content`);
+        }
+      }
+      await fsPromises.writeFile(filePath, JSON.stringify(defaultContent, null, 2));
+      console.log(`Created ${path.basename(filePath)} with default content`);
+    } catch (error) {
+      console.error(`Failed to create file ${filePath}:`, error);
+      throw error;
+    }
+  }
+}
+
+export async function initializeDirectories(): Promise<void> {
+  try {
+    // Create base directories sequentially to avoid race conditions
+    await ensureDirectory(DIRECTORIES.DATA);
+    await ensureDirectory(DIRECTORIES.LOGS);
+    await ensureDirectory(DIRECTORIES.THREAD_LOGS);
+    await ensureDirectory(DIRECTORIES.CONFIG);
+    await ensureDirectory(DIRECTORIES.PROMPTS);
+    await ensureDirectory(DIRECTORIES.COLLECTIONS);
+
+    // Ensure required files exist
+    await ensureFile(
+      FILES.API_CONFIG,
+      { apis: [] },
+      path.join(DIRECTORIES.CONFIG, 'apis.example.json')
     );
-    console.log('Created changelog.json');
+    
+    await ensureFile(
+      FILES.CHANGELOG,
+      DEFAULT_CHANGELOG
+    );
+
+    console.log('Directory initialization completed successfully');
+  } catch (error) {
+    console.error('Failed to initialize directories:', error);
+    throw new Error(`Directory initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 } 
