@@ -11,6 +11,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^29.5.12",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "cra-template": "1.2.0",
@@ -22,15 +23,22 @@
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^19.0.0",
     "react-router-dom": "^6.22.3",
-    "react-scripts": "^3.4.4",
+    "react-scripts": "^5.0.1",
+    "uuid": "^11.1.0",
     "web-vitals": "^4.2.4"
   },
   "scripts": {
-	"start": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts start",
+    "start": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts start",
     "build": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server": "node server.js"
+    "server": "node server.js",
+    "server:dev": "set NODE_OPTIONS=--loader ts-node/esm && ts-node --esm src/server/server.ts",
+    "server:build": "tsc -p tsconfig.server.json",
+    "server:prod": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "typecheck:server": "tsc -p tsconfig.server.json --noEmit",
+    "dev": "npx concurrently \"npm run server:dev\" \"npm run start\""
   },
   "eslintConfig": {
     "extends": [
@@ -51,6 +59,15 @@
     ]
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.26.7"
+    "@babel/preset-env": "^7.26.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.13.6",
+    "@types/react": "^19.0.10",
+    "@types/react-beautiful-dnd": "^13.1.8",
+    "@types/react-dom": "^19.0.4",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
   }
 }

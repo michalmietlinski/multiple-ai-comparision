@@ -27,6 +27,8 @@ yarn-error.log*
 *.log
 logs/
 threadLogs/
+data/threads/
+collections/
 /logs
 /threadLogs
 log/
