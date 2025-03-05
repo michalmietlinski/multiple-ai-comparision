@@ -1,3 +1,10 @@
+/**
+ * @deprecated This file is deprecated. Use shared types from src/shared/types/messages.types.ts instead.
+ * 
+ * This file will be removed in a future update. All types have been moved to the shared directory
+ * to eliminate duplication and ensure consistency across the codebase.
+ */
+
 export interface TokenUsage {
   prompt_tokens: number;
   completion_tokens: number;

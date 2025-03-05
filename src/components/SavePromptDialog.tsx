@@ -1,6 +1,6 @@
 import React, { useState, FormEvent } from 'react';
 import axios from 'axios';
-import { SavePromptDialogProps } from '../types/components.types';
+import { SavePromptDialogProps } from '../shared/types/components.types';
 import { SavedPrompt } from '../types/storage.types';
 import './SavePromptDialog.css';
 

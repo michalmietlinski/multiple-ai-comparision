@@ -1,6 +1,6 @@
 import React, { useState, FormEvent } from 'react';
 import SavePromptDialog from './SavePromptDialog';
-import { ComparisonFormProps } from '../types/components.types';
+import { ComparisonFormProps } from '../shared/types/components.types';
 import './ComparisonForm.css';
 
 const ComparisonForm: React.FC<ComparisonFormProps> = ({ 
@@ -118,6 +118,7 @@ const ComparisonForm: React.FC<ComparisonFormProps> = ({
 
       {showSaveDialog && (
         <SavePromptDialog
+          show={showSaveDialog}
           prompt={prompt}
           onClose={handleSaveClose}
           onSaved={handleSaved}

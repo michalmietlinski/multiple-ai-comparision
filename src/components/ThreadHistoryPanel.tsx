@@ -1,17 +1,7 @@
 import React from 'react';
-import { ThreadState, ThreadMessage } from '../types/chat.types';
+import { ThreadMessage } from '../shared/types/messages.types';
+import { ThreadHistoryPanelProps } from '../shared/types/components.types';
 import './ThreadHistoryPanel.css';
-
-interface ThreadHistoryPanelProps {
-  showHistory: boolean;
-  setShowHistory: (show: boolean) => void;
-  threads: ThreadState[];
-  threadsLoading: boolean;
-  loadThread: (threadId: string) => Promise<void>;
-  deleteThread: (threadId: string) => Promise<void>;
-  clearAllThreads: () => Promise<void>;
-  deletingThreads: Record<string, boolean>;
-}
 
 const ThreadHistoryPanel: React.FC<ThreadHistoryPanelProps> = ({
   showHistory,
