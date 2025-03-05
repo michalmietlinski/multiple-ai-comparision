@@ -1,11 +1,14 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import { ThreadState, ThreadMessage } from '../types/chat.types';
+import { 
+  ThreadMessage, 
+  ThreadStateWithCombinedMessages 
+} from '../shared/types/messages.types';
 
 const API_BASE = 'http://localhost:3001/api';
 
 export class ThreadService {
-  static async createThread(models: string[]): Promise<ThreadState> {
+  static async createThread(models: string[]): Promise<ThreadStateWithCombinedMessages> {
     try {
       console.log('[ThreadService] Creating thread with models:', models);
       
@@ -13,7 +16,7 @@ export class ThreadService {
       const timestamp = new Date().toISOString();
       
       // Create initial thread state
-      const newThread: ThreadState = {
+      const newThread: ThreadStateWithCombinedMessages = {
         id: threadId,
         models,
         isActive: true,
@@ -46,16 +49,6 @@ export class ThreadService {
         return [];
       }
       
-      // Log the first message to help with debugging
-      if (chatResponse.data.history.length > 0) {
-        const firstMessage = chatResponse.data.history[0];
-        
-        // Log the first response if available
-        if (firstMessage.responses && firstMessage.responses.length > 0) {
-          const firstResponse = firstMessage.responses[0];
-        }
-      }
-      
       return chatResponse.data.history;
     } catch (error) {
       console.error('[ThreadService] Error sending message:', error);
@@ -63,7 +56,7 @@ export class ThreadService {
     }
   }
 
-  static async getThread(threadId: string): Promise<ThreadState> {
+  static async getThread(threadId: string): Promise<ThreadStateWithCombinedMessages> {
     try {
       const response = await axios.get(`${API_BASE}/threads/${threadId}`);
       return response.data;
@@ -73,7 +66,7 @@ export class ThreadService {
     }
   }
 
-  static async listThreads(): Promise<ThreadState[]> {
+  static async listThreads(): Promise<ThreadStateWithCombinedMessages[]> {
     try {
       const response = await axios.get(`${API_BASE}/threads`);
       const threads = response.data.threads || [];
@@ -112,7 +105,7 @@ export class ThreadService {
   }
 
   // Helper method to get messages for a specific model
-  static getMessagesForModel(thread: ThreadState, modelId: string): { role: string; content: string }[] {
+  static getMessagesForModel(thread: ThreadStateWithCombinedMessages, modelId: string): { role: string; content: string }[] {
     if (!thread || !thread.messages || !Array.isArray(thread.messages)) {
       return [];
     }

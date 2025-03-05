@@ -1,37 +1,11 @@
 import React, { JSX } from 'react';
 import './ThreadedChat.css';
 import { getModelDisplayName } from '../config/modelConfig';
-
-// Updated type definitions to match backend
-interface ChatUsage {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-}
-
-interface BaseMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  model?: string;
-  timestamp: string;
-  usage?: ChatUsage | null;
-}
-
-interface ThreadMessage {
-  userMessage: BaseMessage;
-  responses: BaseMessage[];
-  timestamp: string;
-  usage?: ChatUsage | null;
-}
-
-// Updated props interface
-interface ThreadedChatProps {
-  messages: ThreadMessage[];
-  selectedModels: string[];
-  loading: Record<string, boolean>;
-  layout?: 'stacked' | 'grid';
-  fullWidth?: boolean;
-}
+import { 
+  BaseMessage,
+  ChatUsage
+} from '../shared/types/messages.types';
+import { ThreadedChatProps } from '../shared/types/components.types';
 
 const renderTokenUsage = (usage: ChatUsage): JSX.Element => (
   <div className="token-usage">
@@ -52,16 +26,12 @@ const MessageContent = ({ message }: { message: BaseMessage }) => {
   try {
     // Try to parse as JSON first (for backward compatibility)
     let displayContent = message.content || '';
-    let usage = message.usage;
     
     try {
       if (typeof message.content === 'string') {
         const parsed = JSON.parse(message.content);
         if (parsed && parsed.response) {
           displayContent = parsed.response;
-          if (parsed.usage) {
-            usage = parsed.usage;
-          }
         }
       }
     } catch (e) {

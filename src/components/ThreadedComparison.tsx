@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
 import ComparisonForm from './ComparisonForm';
 import ThreadedChat from './ThreadedChat';
 import ThreadHistoryPanel from './ThreadHistoryPanel';
-import { Model } from '../types/api.types';
+import { Model, ApiModel } from '../shared/types/api.types';
+import { 
+  ThreadMessage, 
+  ThreadStateWithCombinedMessages,
+} from '../shared/types/messages.types';
 import { getModelDisplayName } from '../config/modelConfig';
 import { ThreadService } from '../services/threadService';
 import './ThreadedComparison.css';
@@ -17,49 +20,18 @@ interface ThreadedComparisonProps {
   setCurrentPrompt: (prompt: string) => void;
 }
 
-interface ApiModel {
-  id: string;
-  name: string;
-}
-
 // Add type declaration for uuid
 declare module 'uuid' {
   export function v4(): string;
 }
 
-// Updated type definitions to match backend
-interface ChatUsage {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-}
-
-interface BaseMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  model?: string;
-  timestamp: string;
-  usage?: ChatUsage | null;
-}
-
-interface ThreadMessage {
-  userMessage: BaseMessage;
-  responses: BaseMessage[];
-  timestamp: string;
-  usage?: ChatUsage | null;
-}
-
-interface ThreadState {
-  id: string;
-  models: string[];
-  isActive: boolean;
-  messages: ThreadMessage[];
-  createdAt: string;
-  updatedAt: string;
+// Define a local interface that extends the shared Model type to include any additional properties needed
+interface ExtendedModel extends Model {
+  apiId?: string; // Add this property to satisfy the legacy Model type
 }
 
 const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, setCurrentPrompt }) => {
-  const [availableModels, setAvailableModels] = useState<Model[]>([]);
+  const [availableModels, setAvailableModels] = useState<ExtendedModel[]>([]);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState<Record<string, boolean>>({});
@@ -68,14 +40,13 @@ const ThreadedComparison: React.FC<ThreadedComparisonProps> = ({ currentPrompt, 
   const [modelsLoading, setModelsLoading] = useState(true);
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [threads, setThreads] = useState<ThreadState[]>([]);
+  const [threads, setThreads] = useState<ThreadStateWithCombinedMessages[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
   const [deletingThreads, setDeletingThreads] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [chatLayout, setChatLayout] = useState<'stacked' | 'grid'>('stacked');
   const [isFullWidth, setIsFullWidth] = useState(false);
-  const [currentThread, setCurrentThread] = useState<ThreadState | null>(null);
-
+  const [currentThread, setCurrentThread] = useState<ThreadStateWithCombinedMessages | null>(null);
 
   // Get threadId from URL
   const getThreadIdFromUrl = () => {

@@ -1,6 +1,5 @@
 import { promises as fsPromises } from 'fs';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 import { DIRECTORIES } from '../config/directories.js';
 import { Thread } from '../types/threads.types.js';
 import { ThreadMessage } from 'server/types/api.types.js';
