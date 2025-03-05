@@ -2,7 +2,6 @@ import React, { JSX } from 'react';
 import './ThreadedChat.css';
 import { getModelDisplayName } from '../config/modelConfig';
 import { 
-  ThreadMessage, 
   BaseMessage,
   ChatUsage
 } from '../shared/types/messages.types';
@@ -27,16 +26,12 @@ const MessageContent = ({ message }: { message: BaseMessage }) => {
   try {
     // Try to parse as JSON first (for backward compatibility)
     let displayContent = message.content || '';
-    let usage = message.usage;
     
     try {
       if (typeof message.content === 'string') {
         const parsed = JSON.parse(message.content);
         if (parsed && parsed.response) {
           displayContent = parsed.response;
-          if (parsed.usage) {
-            usage = parsed.usage;
-          }
         }
       }
     } catch (e) {

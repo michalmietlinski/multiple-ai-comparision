@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { 
-  ThreadState, 
   ThreadMessage, 
   ThreadStateWithCombinedMessages 
 } from '../shared/types/messages.types';
@@ -48,16 +47,6 @@ export class ThreadService {
       if (!chatResponse.data.history || !Array.isArray(chatResponse.data.history)) {
         console.error('[ThreadService] Invalid history in response:', chatResponse.data);
         return [];
-      }
-      
-      // Log the first message to help with debugging
-      if (chatResponse.data.history.length > 0) {
-        const firstMessage = chatResponse.data.history[0];
-        
-        // Log the first response if available
-        if (firstMessage.responses && firstMessage.responses.length > 0) {
-          const firstResponse = firstMessage.responses[0];
-        }
       }
       
       return chatResponse.data.history;

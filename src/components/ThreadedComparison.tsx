@@ -1,17 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
 import ComparisonForm from './ComparisonForm';
 import ThreadedChat from './ThreadedChat';
 import ThreadHistoryPanel from './ThreadHistoryPanel';
 import { Model, ApiModel } from '../shared/types/api.types';
 import { 
   ThreadMessage, 
-  ThreadState,
   ThreadStateWithCombinedMessages,
-  BaseMessage,
-  ChatUsage
 } from '../shared/types/messages.types';
 import { getModelDisplayName } from '../config/modelConfig';
 import { ThreadService } from '../services/threadService';

@@ -5,10 +5,8 @@
  * across the application.
  */
 
-import { FormEvent } from 'react';
 import { 
   ThreadMessage, 
-  ThreadState,
   ThreadStateWithCombinedMessages
 } from './messages.types';
 import { Model } from './api.types';
